@@ -207,8 +207,9 @@ Q: What's the difference between SetPwm() and SetDuty()?</h2>
 </ul>
 <h2><a class="anchor" id="autotoc_md153"></a>
 Q: Can I use multiple PCA9685 devices?</h2>
-<p><b>A:</b> Yes! Configure different I2C addresses via A0-A5 pins, then create separate driver instances: </p><div class="fragment"><div class="line">pca9685::PCA9685&lt;MyI2c&gt; pwm1(&amp;i2c, 0x40); <span class="comment">// First device</span></div>
-<div class="line">pca9685::PCA9685&lt;MyI2c&gt; pwm2(&amp;i2c, 0x41); <span class="comment">// Second device</span></div>
+<p><b>A:</b> Yes! Configure different I2C addresses via A0-A5 pins, then create separate driver instances: </p><div class="fragment"><div class="line"><a class="code hl_class" href="classpca9685_1_1PCA9685.html">pca9685::PCA9685&lt;MyI2c&gt;</a> pwm1(&amp;i2c, 0x40); <span class="comment">// First device</span></div>
+<div class="line"><a class="code hl_class" href="classpca9685_1_1PCA9685.html">pca9685::PCA9685&lt;MyI2c&gt;</a> pwm2(&amp;i2c, 0x41); <span class="comment">// Second device</span></div>
+<div class="ttc" id="aclasspca9685_1_1PCA9685_html"><div class="ttname"><a href="classpca9685_1_1PCA9685.html">pca9685::PCA9685</a></div><div class="ttdoc">Driver for the PCA9685 16-channel 12-bit PWM controller.</div><div class="ttdef"><b>Definition</b> pca9685.hpp:35</div></div>
 </div><!-- fragment --><h2><a class="anchor" id="autotoc_md154"></a>
 Q: Why are my servos not moving?</h2>
 <p><b>A:</b> Common causes:</p><ol type="1">

@@ -1,0 +1,8 @@
+<map id="inc/pca9685_i2c_interface.hpp" name="inc/pca9685_i2c_interface.hpp">
+<area shape="rect" id="Node000001" title="CRTP&#45;based I2C interface for PCA9685 driver." alt="" coords="5,5,224,31"/>
+<area shape="rect" id="Node000002" href="$pca9685_8hpp.html" title="Hardware&#45;agnostic driver for the PCA9685 16&#45;channel 12&#45;bit PWM." alt="" coords="51,79,179,104"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="117,44,117,79,112,79,112,44"/>
+<area shape="rect" id="Node000003" href="$pca9685_8ipp.html" title="Hardware&#45;agnostic implementation for the PCA9685 16&#45;channel 12&#45;bit PWM controller (I2C)" alt="" coords="53,152,177,177"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="109,118,110,152,105,152,103,118"/>
+<area shape="poly" id="edge3_Node000003_Node000002" title=" " alt="" coords="121,139,119,104,124,104,126,138"/>
+</map>

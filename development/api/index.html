@@ -118,31 +118,37 @@ $(function() {
 </ul>
 <h1><a class="anchor" id="autotoc_md4"></a>
 🚀 Quick Start</h1>
-<div class="fragment"><div class="line"><span class="preprocessor">#include &quot;pca9685.hpp&quot;</span></div>
+<div class="fragment"><div class="line"><span class="preprocessor">#include &quot;<a class="code" href="pca9685_8hpp.html">pca9685.hpp</a>&quot;</span></div>
 <div class="line"> </div>
 <div class="line"><span class="comment">// 1. Implement the I2C interface (see platform_integration.md)</span></div>
-<div class="line"><span class="keyword">class </span>MyI2c : <span class="keyword">public</span> pca9685::I2cInterface&lt;MyI2c&gt; {</div>
+<div class="line"><span class="keyword">class </span>MyI2c : <span class="keyword">public</span> <a class="code hl_class" href="classpca9685_1_1I2cInterface.html">pca9685::I2cInterface</a>&lt;MyI2c&gt; {</div>
 <div class="line"><span class="keyword">public</span>:</div>
-<div class="line">    <span class="keywordtype">bool</span> Write(uint8_t addr, uint8_t reg, <span class="keyword">const</span> uint8_t *data, <span class="keywordtype">size_t</span> len) <span class="keyword">noexcept</span>;</div>
-<div class="line">    <span class="keywordtype">bool</span> Read(uint8_t addr, uint8_t reg, uint8_t *data, <span class="keywordtype">size_t</span> len) <span class="keyword">noexcept</span>;</div>
-<div class="line">    <span class="keywordtype">bool</span> EnsureInitialized() noexcept;</div>
+<div class="line">    <span class="keywordtype">bool</span> <a class="code hl_function" href="classpca9685_1_1I2cInterface.html#a777d6922e93b2c35d3d5b353dadf4db1">Write</a>(uint8_t addr, uint8_t reg, <span class="keyword">const</span> uint8_t *data, <span class="keywordtype">size_t</span> len) <span class="keyword">noexcept</span>;</div>
+<div class="line">    <span class="keywordtype">bool</span> <a class="code hl_function" href="classpca9685_1_1I2cInterface.html#a838c79703cca13f746c4f2a92680e705">Read</a>(uint8_t addr, uint8_t reg, uint8_t *data, <span class="keywordtype">size_t</span> len) <span class="keyword">noexcept</span>;</div>
+<div class="line">    <span class="keywordtype">bool</span> <a class="code hl_function" href="classpca9685_1_1I2cInterface.html#ac15975f4e4d3577c032ee723b389f2bf">EnsureInitialized</a>() noexcept;</div>
 <div class="line">};</div>
 <div class="line"> </div>
 <div class="line"><span class="comment">// 2. Create driver instance</span></div>
 <div class="line">MyI2c i2c;</div>
-<div class="line">pca9685::PCA9685&lt;MyI2c&gt; pwm(&amp;i2c, 0x40); <span class="comment">// 0x40 is default I2C address</span></div>
+<div class="line"><a class="code hl_namespace" href="namespacepca9685.html">pca9685</a>::PCA9685&lt;MyI2c&gt; pwm(&amp;i2c, 0x40); <span class="comment">// 0x40 is default I2C address</span></div>
 <div class="line"> </div>
 <div class="line"><span class="comment">// 3. Initialize and use</span></div>
 <div class="line">pwm.Reset();</div>
 <div class="line">pwm.SetPwmFreq(50.0f); <span class="comment">// 50 Hz for servos</span></div>
 <div class="line">pwm.SetDuty(0, 0.075f); <span class="comment">// Channel 0, 7.5% duty (1.5ms pulse for servo)</span></div>
+<div class="ttc" id="aclasspca9685_1_1I2cInterface_html"><div class="ttname"><a href="classpca9685_1_1I2cInterface.html">pca9685::I2cInterface</a></div><div class="ttdoc">CRTP-based template interface for I2C bus operations.</div><div class="ttdef"><b>Definition</b> pca9685_i2c_interface.hpp:67</div></div>
+<div class="ttc" id="aclasspca9685_1_1I2cInterface_html_a777d6922e93b2c35d3d5b353dadf4db1"><div class="ttname"><a href="classpca9685_1_1I2cInterface.html#a777d6922e93b2c35d3d5b353dadf4db1">pca9685::I2cInterface::Write</a></div><div class="ttdeci">bool Write(uint8_t addr, uint8_t reg, const uint8_t *data, size_t len) noexcept</div><div class="ttdoc">Write bytes to a device register.</div><div class="ttdef"><b>Definition</b> pca9685_i2c_interface.hpp:77</div></div>
+<div class="ttc" id="aclasspca9685_1_1I2cInterface_html_a838c79703cca13f746c4f2a92680e705"><div class="ttname"><a href="classpca9685_1_1I2cInterface.html#a838c79703cca13f746c4f2a92680e705">pca9685::I2cInterface::Read</a></div><div class="ttdeci">bool Read(uint8_t addr, uint8_t reg, uint8_t *data, size_t len) noexcept</div><div class="ttdoc">Read bytes from a device register.</div><div class="ttdef"><b>Definition</b> pca9685_i2c_interface.hpp:89</div></div>
+<div class="ttc" id="aclasspca9685_1_1I2cInterface_html_ac15975f4e4d3577c032ee723b389f2bf"><div class="ttname"><a href="classpca9685_1_1I2cInterface.html#ac15975f4e4d3577c032ee723b389f2bf">pca9685::I2cInterface::EnsureInitialized</a></div><div class="ttdeci">bool EnsureInitialized() noexcept</div><div class="ttdoc">Ensure the I2C bus is initialized and ready for communication.</div><div class="ttdef"><b>Definition</b> pca9685_i2c_interface.hpp:104</div></div>
+<div class="ttc" id="anamespacepca9685_html"><div class="ttname"><a href="namespacepca9685.html">pca9685</a></div><div class="ttdef"><b>Definition</b> pca9685.hpp:16</div></div>
+<div class="ttc" id="apca9685_8hpp_html"><div class="ttname"><a href="pca9685_8hpp.html">pca9685.hpp</a></div><div class="ttdoc">Hardware-agnostic driver for the PCA9685 16-channel 12-bit PWM.</div></div>
 </div><!-- fragment --><p>For detailed setup, see <a class="el" href="md_docs_2installation.html">Installation</a> and <a class="el" href="md_docs_2quickstart.html">Quick Start Guide</a>.</p>
 <h1><a class="anchor" id="autotoc_md5"></a>
 🔧 Installation</h1>
 <ol type="1">
 <li><b>Clone or copy</b> the driver files into your project</li>
 <li><b>Implement the I2C interface</b> for your platform (see <a class="el" href="md_docs_2platform__integration.html">Platform Integration</a>)</li>
-<li><b>Include the header</b> in your code: <div class="fragment"><div class="line"><span class="preprocessor">#include &quot;pca9685.hpp&quot;</span></div>
+<li><b>Include the header</b> in your code: <div class="fragment"><div class="line"><span class="preprocessor">#include &quot;<a class="code" href="pca9685_8hpp.html">pca9685.hpp</a>&quot;</span></div>
 </div><!-- fragment --></li>
 <li>Compile with a <b>C++11</b> or newer compiler</li>
 </ol>

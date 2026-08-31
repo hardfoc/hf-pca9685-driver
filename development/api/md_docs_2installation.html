@@ -99,13 +99,14 @@ Option 2: Copy Files</h2>
 <div class="line">  └── pca9685_i2c_interface.hpp</div>
 <div class="line">src/</div>
 <div class="line">  └── pca9685.ipp</div>
-</div><!-- fragment --><p><b>Note</b>: The driver uses a template design: the implementation is in <code><a class="el" href="pca9685_8ipp.html" title="Hardware-agnostic implementation for the PCA9685 16-channel 12-bit PWM controller (I2C)">src/pca9685.ipp</a></code> and is included by <code>inc/pca9685.hpp</code>. Your build must have <code>inc/</code> and <code>src/</code> on the include path so that <code>pca9685.hpp</code> can include the <code>.ipp</code> file. You do not compile <code><a class="el" href="pca9685_8ipp.html" title="Hardware-agnostic implementation for the PCA9685 16-channel 12-bit PWM controller (I2C)">pca9685.ipp</a></code> as a separate translation unit.</p>
+</div><!-- fragment --><p><b>Note</b>: The driver uses a template design: the implementation is in <code><a class="el" href="pca9685_8ipp.html" title="Hardware-agnostic implementation for the PCA9685 16-channel 12-bit PWM controller (I2C)">src/pca9685.ipp</a></code> and is included by <code><a class="el" href="pca9685_8hpp.html" title="Hardware-agnostic driver for the PCA9685 16-channel 12-bit PWM.">inc/pca9685.hpp</a></code>. Your build must have <code>inc/</code> and <code>src/</code> on the include path so that <code><a class="el" href="pca9685_8hpp.html" title="Hardware-agnostic driver for the PCA9685 16-channel 12-bit PWM.">pca9685.hpp</a></code> can include the <code>.ipp</code> file. You do not compile <code><a class="el" href="pca9685_8ipp.html" title="Hardware-agnostic implementation for the PCA9685 16-channel 12-bit PWM controller (I2C)">pca9685.ipp</a></code> as a separate translation unit.</p>
 <h1><a class="anchor" id="autotoc_md98"></a>
 Building the Library</h1>
 <h2><a class="anchor" id="autotoc_md99"></a>
 As Part of Your Project (Include Path)</h2>
 <p>Since the driver is header-only (template implementation in <code>.ipp</code>), add the repository <code>inc/</code> and <code>src/</code> directories to your include path and include the main header:</p>
-<div class="fragment"><div class="line"><span class="preprocessor">#include &quot;pca9685.hpp&quot;</span></div>
+<div class="fragment"><div class="line"><span class="preprocessor">#include &quot;<a class="code" href="pca9685_8hpp.html">pca9685.hpp</a>&quot;</span></div>
+<div class="ttc" id="apca9685_8hpp_html"><div class="ttname"><a href="pca9685_8hpp.html">pca9685.hpp</a></div><div class="ttdoc">Hardware-agnostic driver for the PCA9685 16-channel 12-bit PWM.</div></div>
 </div><!-- fragment --><p>Your build system must allow the header to find <code>../src/pca9685.ipp</code> (relative to the header) or you can add <code>src/</code> to the include path as well.</p>
 <h2><a class="anchor" id="autotoc_md100"></a>
 Using CMake</h2>
@@ -128,10 +129,10 @@ Using ESP-IDF (ESP32 Examples)</h2>
 Verification</h1>
 <p>To verify the installation:</p>
 <ol type="1">
-<li>Include the header in a test file: <div class="fragment"><div class="line"><span class="preprocessor">#include &quot;pca9685.hpp&quot;</span></div>
+<li>Include the header in a test file: <div class="fragment"><div class="line"><span class="preprocessor">#include &quot;<a class="code" href="pca9685_8hpp.html">pca9685.hpp</a>&quot;</span></div>
 <div class="line"><span class="comment">// Provide an I2C implementation and instantiate PCA9685&lt;YourI2c&gt;</span></div>
 </div><!-- fragment --></li>
-<li>Ensure your include path contains both <code>inc/</code> and <code>src/</code> (so <code>pca9685.hpp</code> can include <code><a class="el" href="pca9685_8ipp.html" title="Hardware-agnostic implementation for the PCA9685 16-channel 12-bit PWM controller (I2C)">pca9685.ipp</a></code>).</li>
+<li>Ensure your include path contains both <code>inc/</code> and <code>src/</code> (so <code><a class="el" href="pca9685_8hpp.html" title="Hardware-agnostic driver for the PCA9685 16-channel 12-bit PWM.">pca9685.hpp</a></code> can include <code><a class="el" href="pca9685_8ipp.html" title="Hardware-agnostic implementation for the PCA9685 16-channel 12-bit PWM controller (I2C)">pca9685.ipp</a></code>).</li>
 <li>For hardware verification, use the ESP32 comprehensive test app (see <a class="el" href="md_docs_2examples.html">Examples</a>): <div class="fragment"><div class="line">cd examples/esp32</div>
 <div class="line">./scripts/build_app.sh pca9685_comprehensive_test Debug</div>
 <div class="line">./scripts/flash_app.sh flash_monitor pca9685_comprehensive_test Debug</div>

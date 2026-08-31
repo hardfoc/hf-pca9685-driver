@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['—_20cmake_20integration_20guide_0',['PCA9685 — CMake Integration Guide',['../md_docs_2cmake__integration.html',1,'']]]
+  ['_7ei2cinterface_0',['~I2cInterface',['../classpca9685_1_1I2cInterface.html#a721ea9fca59ba3bd64a1b97035b97ca5',1,'pca9685::I2cInterface']]]
 ];
