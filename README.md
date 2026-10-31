@@ -12,15 +12,15 @@ This branch contains the versioned documentation for this repository.
 
 ## Access
 
-- **Latest**: [https://N3b3x.github.io/hf-pca9685-driver/](https://N3b3x.github.io/hf-pca9685-driver/)
-- **All Versions**: [https://N3b3x.github.io/hf-pca9685-driver/version_selector.html](https://N3b3x.github.io/hf-pca9685-driver/version_selector.html)
+- **Latest**: [https://hardfoc.github.io/hf-pca9685-driver/](https://hardfoc.github.io/hf-pca9685-driver/)
+- **All Versions**: [https://hardfoc.github.io/hf-pca9685-driver/version_selector.html](https://hardfoc.github.io/hf-pca9685-driver/version_selector.html)
 
 ## Current Version
 
 - **Version**: development
 - **Type**: development
-- **Deployed**: 2026-08-31T01:01:43Z
-- **Commit**: 69fd3ea1022968efe9b744079e0c80c321bf9bc1
+- **Deployed**: 2026-10-31T08:19:34Z
+- **Commit**: e5dd1ccda69573ceda1008d3331b2ec3306a5ace
 
 ---
 
