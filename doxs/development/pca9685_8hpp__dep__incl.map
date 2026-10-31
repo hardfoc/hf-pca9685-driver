@@ -1,6 +1,6 @@
 <map id="inc/pca9685.hpp" name="inc/pca9685.hpp">
-<area shape="rect" id="Node000001" title="Hardware&#45;agnostic driver for the PCA9685 16&#45;channel 12&#45;bit PWM." alt="" coords="5,5,133,31"/>
-<area shape="rect" id="Node000002" href="$pca9685_8ipp.html" title="Hardware&#45;agnostic implementation for the PCA9685 16&#45;channel 12&#45;bit PWM controller (I2C)" alt="" coords="7,79,131,104"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="63,44,65,78,60,79,58,45"/>
-<area shape="poly" id="edge2_Node000002_Node000001" title=" " alt="" coords="75,65,74,31,79,31,81,65"/>
+<area shape="rect" id="Node000001" title="Hardware&#45;agnostic driver for the PCA9685 16&#45;channel 12&#45;bit PWM." alt="" coords="5,5,133,33"/>
+<area shape="rect" id="Node000002" href="$pca9685_8ipp.html" title="Hardware&#45;agnostic implementation for the PCA9685 16&#45;channel 12&#45;bit PWM controller (I2C)" alt="" coords="7,81,131,109"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="62,47,65,81,59,80,58,50"/>
+<area shape="poly" id="edge2_Node000002_Node000001" title=" " alt="" coords="75,65,74,36,78,31,80,66"/>
 </map>
