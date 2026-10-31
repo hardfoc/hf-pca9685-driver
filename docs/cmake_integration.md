@@ -20,7 +20,7 @@ How to consume the PCA9685 driver in your CMake or ESP-IDF project.
 
 ```bash
 # From your project root
-git submodule add https://github.com/N3b3x/hf-pca9685-driver.git external/hf-pca9685-driver
+git submodule add https://github.com/hardfoc/hf-pca9685-driver.git external/hf-pca9685-driver
 git submodule update --init --recursive
 ```
 

@@ -24,7 +24,7 @@ Before installing the driver, ensure you have:
 ### Option 1: Git Clone
 
 ```bash
-git clone https://github.com/N3b3x/hf-pca9685-driver.git
+git clone https://github.com/hardfoc/hf-pca9685-driver.git
 cd hf-pca9685-driver
 ```
 
