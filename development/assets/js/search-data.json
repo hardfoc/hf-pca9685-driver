@@ -239,7 +239,7 @@
   },"34": {
     "doc": "⚙️ CMake Integration",
     "title": "Option A — Git Submodule (recommended)",
-    "content": "| 1 2 3 . | # From your project root git submodule add https://github.com/N3b3x/hf-pca9685-driver.git external/hf-pca9685-driver git submodule update --init --recursive . | . In your top-level CMakeLists.txt: . | 1 2 3 4 . | add_subdirectory(external/hf-pca9685-driver) add_executable(my_app main.cpp) target_link_libraries(my_app PRIVATE hf::pca9685) . | . The hf::pca9685 alias target provides the header include paths, C++20 compile feature, and generated version header automatically. ",
+    "content": "| 1 2 3 . | # From your project root git submodule add https://github.com/hardfoc/hf-pca9685-driver.git external/hf-pca9685-driver git submodule update --init --recursive . | . In your top-level CMakeLists.txt: . | 1 2 3 4 . | add_subdirectory(external/hf-pca9685-driver) add_executable(my_app main.cpp) target_link_libraries(my_app PRIVATE hf::pca9685) . | . The hf::pca9685 alias target provides the header include paths, C++20 compile feature, and generated version header automatically. ",
     "url": "/hf-pca9685-driver/development/docs/cmake_integration/#option-a--git-submodule-recommended",
     
     "relUrl": "/docs/cmake_integration/#option-a--git-submodule-recommended"
@@ -806,7 +806,7 @@
   },"115": {
     "doc": "🛠️ Installation",
     "title": "Option 1: Git Clone",
-    "content": "| 1 2 . | git clone https://github.com/N3b3x/hf-pca9685-driver.git cd hf-pca9685-driver . | . ",
+    "content": "| 1 2 . | git clone https://github.com/hardfoc/hf-pca9685-driver.git cd hf-pca9685-driver . | . ",
     "url": "/hf-pca9685-driver/development/docs/installation/#option-1-git-clone",
     
     "relUrl": "/docs/installation/#option-1-git-clone"

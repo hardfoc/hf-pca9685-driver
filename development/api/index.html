@@ -77,7 +77,7 @@ $(function() {
 </div><!--header-->
 <div class="contents">
 <div class="textblock"><p><a class="anchor" id="md_README"></a><b>Hardware-agnostic C++ driver for the NXP PCA9685 16-channel 12-bit PWM controller</b></p>
-<p><a href="https://en.cppreference.com/w/cpp/11"><img src="https://img.shields.io/badge/C%2B%2B-11-blue.svg" alt="C++" style="pointer-events: none;" class="inline"/></a> <a href="https://www.gnu.org/licenses/gpl-3.0"><img src="https://img.shields.io/badge/License-GPLv3-blue.svg" alt="License" style="pointer-events: none;" class="inline"/></a> <a href="https://github.com/N3b3x/hf-pca9685-driver/actions/workflows/esp32-examples-build-ci.yml"><img src="https://github.com/N3b3x/hf-pca9685-driver/actions/workflows/esp32-examples-build-ci.yml/badge.svg?branch=main" alt="CI" style="pointer-events: none;" class="inline"/></a> <a href="https://n3b3x.github.io/hf-pca9685-driver/"><img src="https://img.shields.io/badge/docs-GitHub%20Pages-blue" alt="Docs" class="inline"/></a></p>
+<p><a href="https://en.cppreference.com/w/cpp/11"><img src="https://img.shields.io/badge/C%2B%2B-11-blue.svg" alt="C++" style="pointer-events: none;" class="inline"/></a> <a href="https://www.gnu.org/licenses/gpl-3.0"><img src="https://img.shields.io/badge/License-GPLv3-blue.svg" alt="License" style="pointer-events: none;" class="inline"/></a> <a href="https://github.com/hardfoc/hf-pca9685-driver/actions/workflows/esp32-examples-build-ci.yml"><img src="https://github.com/hardfoc/hf-pca9685-driver/actions/workflows/esp32-examples-build-ci.yml/badge.svg?branch=main" alt="CI" style="pointer-events: none;" class="inline"/></a> <a href="https://hardfoc.github.io/hf-pca9685-driver/"><img src="https://img.shields.io/badge/docs-GitHub%20Pages-blue" alt="Docs" class="inline"/></a></p>
 <h1><a class="anchor" id="autotoc_md1"></a>
 📚 Table of Contents</h1>
 <ol type="1">
@@ -95,7 +95,7 @@ $(function() {
 <h1><a class="anchor" id="autotoc_md2"></a>
 📦 Overview</h1>
 <blockquote class="doxtable">
-<p>&zwj;<b>📖 <a href="https://n3b3x.github.io/hf-pca9685-driver/">📚🌐 Live Complete Documentation</a></b> - Interactive guides, examples, and step-by-step tutorials </p>
+<p>&zwj;<b>📖 <a href="https://hardfoc.github.io/hf-pca9685-driver/">📚🌐 Live Complete Documentation</a></b> - Interactive guides, examples, and step-by-step tutorials </p>
 </blockquote>
 <p>The <b>PCA9685</b> is a 16-channel, 12-bit PWM controller from NXP Semiconductors that communicates via I²C. It provides independent PWM control for up to 16 outputs with 12-bit resolution (4096 steps), making it ideal for driving LEDs, servos, and other PWM-controlled devices. The chip features an internal 25 MHz oscillator, configurable PWM frequency from 24 Hz to 1526 Hz, and supports daisy-chaining multiple devices for up to 992 PWM outputs.</p>
 <p>This driver provides a hardware-agnostic C++ interface that abstracts all register-level operations, requiring only an implementation of the <code>I2cInterface</code> for your platform. The driver uses the CRTP (Curiously Recurring Template Pattern) for zero-overhead hardware abstraction, making it suitable for resource-constrained embedded systems.</p>
