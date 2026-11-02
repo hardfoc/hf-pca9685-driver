@@ -1311,7 +1311,7 @@
 <h1 id="pwm-timing">PWM timing<a class="headerlink" href="#pwm-timing" title="Permanent link">&para;</a></h1>
 <p>How the PCA9685 makes a PWM waveform: one 12-bit counter, an ON tick and an OFF tick per channel, and a
 prescaler that sets the period. Read it before you drive servos or need phase-shifted outputs.</p>
-<p>Values are from the <a href="https://github.com/hardfoc/hf-pca9685-driver/blob/4e73a09acad6e51061c9a3ff987d5c02d9168f0d/docs/datasheet/PCA9685.pdf">datasheet</a>, sections 7.3.3 to 7.3.5 (pp. 16-25).</p>
+<p>Values are from the <a href="https://github.com/hardfoc/hf-pca9685-driver/blob/cecab2460eb413082c2d33449e4c8f64c97c1f2b/docs/datasheet/PCA9685.pdf">datasheet</a>, sections 7.3.3 to 7.3.5 (pp. 16-25).</p>
 <h2 id="the-counter">The counter<a class="headerlink" href="#the-counter" title="Permanent link">&para;</a></h2>
 <p>Every channel compares one shared counter, running from 0 to 4095 and wrapping, with two 12-bit values:</p>
 <ul>
@@ -1319,7 +1319,8 @@ prescaler that sets the period. Read it before you drive servos or need phase-sh
 <li><strong>OFF tick</strong> (<code>LEDn_OFF</code>): the counter value at which it goes low.</li>
 </ul>
 <p>Duty cycle is <code>(OFF − ON) / 4096</code> when OFF is after ON, and <code>(4096 − ON + OFF) / 4096</code> when it wraps. ON and OFF
-must never be equal (section 7.3.4, p. 25).</p>
+must never be equal (section 7.3.4, p. 25): when you pass equal ticks to <code>SetPwm()</code> or <code>SetAllPwm()</code>, the driver
+writes the full-OFF bit instead.</p>
 <table>
 <thead>
 <tr>
@@ -1355,6 +1356,24 @@ must never be equal (section 7.3.4, p. 25).</p>
 <td>Starts every period at tick 0</td>
 </tr>
 <tr>
+<td><code>SetDuty(ch, 0.0f)</code></td>
+<td>0</td>
+<td>bit 12 set</td>
+<td>Constantly low (full off)</td>
+</tr>
+<tr>
+<td><code>SetDuty(ch, 1.0f)</code></td>
+<td>bit 12 set</td>
+<td>0</td>
+<td>Constantly high (full on)</td>
+</tr>
+<tr>
+<td><code>SetPwm(ch, t, t)</code></td>
+<td>0</td>
+<td>bit 12 set</td>
+<td>Equal ticks: full off</td>
+</tr>
+<tr>
 <td><code>SetChannelFullOn(ch)</code></td>
 <td>bit 12 set</td>
 <td>0</td>
@@ -1370,9 +1389,9 @@ must never be equal (section 7.3.4, p. 25).</p>
 </table>
 <p>Staggering the ON ticks of channels spreads their switching edges over the period and lowers the current surge on
 the load supply; <code>SetDuty()</code> always starts at tick 0, so use <code>SetPwm()</code> for that.</p>
-<p><code>SetDuty(ch, 1.0f)</code> gives OFF = 4095: high for 4095 of 4096 ticks, not constantly high. <code>SetDuty(ch, 0.0f)</code> writes
-ON = OFF = 0, which the datasheet says not to program. Use <code>SetChannelFullOn()</code> and <code>SetChannelFullOff()</code> for the
-two ends.</p>
+<p><code>SetDuty()</code> uses the full-on and full-off bits (<code>LEDn_ON_H</code> and <code>LEDn_OFF_H</code> bit 4, Table 7, p. 24) for the two
+ends: 1.0 is constantly high, and any duty that rounds to OFF = 0 (below 1/8190) is constantly low. It never writes
+ON = OFF.</p>
 <h2 id="the-period">The period<a class="headerlink" href="#the-period" title="Permanent link">&para;</a></h2>
 <p>The counter is clocked from the 25 MHz internal oscillator (or EXTCLK) divided by <code>PRE_SCALE + 1</code>
 (equation 1, p. 25):</p>

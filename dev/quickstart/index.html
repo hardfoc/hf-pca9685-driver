@@ -1422,9 +1422,12 @@ covers CMake and ESP-IDF.</p>
 </span><span id="__span-1-26"><a id="__codelineno-1-26" name="__codelineno-1-26" href="#__codelineno-1-26"></a><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">platform_i2c_write_read</span><span class="p">(</span><span class="n">addr</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">reg</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">data</span><span class="p">,</span><span class="w"> </span><span class="n">len</span><span class="p">);</span>
 </span><span id="__span-1-27"><a id="__codelineno-1-27" name="__codelineno-1-27" href="#__codelineno-1-27"></a><span class="w">  </span><span class="p">}</span>
 </span><span id="__span-1-28"><a id="__codelineno-1-28" name="__codelineno-1-28" href="#__codelineno-1-28"></a>
-</span><span id="__span-1-29"><a id="__codelineno-1-29" name="__codelineno-1-29" href="#__codelineno-1-29"></a><span class="k">private</span><span class="o">:</span>
-</span><span id="__span-1-30"><a id="__codelineno-1-30" name="__codelineno-1-30" href="#__codelineno-1-30"></a><span class="w">  </span><span class="kt">bool</span><span class="w"> </span><span class="n">ready_</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
-</span><span id="__span-1-31"><a id="__codelineno-1-31" name="__codelineno-1-31" href="#__codelineno-1-31"></a><span class="p">};</span>
+</span><span id="__span-1-29"><a id="__codelineno-1-29" name="__codelineno-1-29" href="#__codelineno-1-29"></a><span class="w">  </span><span class="c1">// Optional: wait at least `us` microseconds. The driver uses it for the 500 us oscillator start-up.</span>
+</span><span id="__span-1-30"><a id="__codelineno-1-30" name="__codelineno-1-30" href="#__codelineno-1-30"></a><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="n">DelayUs</span><span class="p">(</span><span class="kt">uint32_t</span><span class="w"> </span><span class="n">us</span><span class="p">)</span><span class="w"> </span><span class="k">noexcept</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">platform_delay_us</span><span class="p">(</span><span class="n">us</span><span class="p">);</span><span class="w"> </span><span class="p">}</span>
+</span><span id="__span-1-31"><a id="__codelineno-1-31" name="__codelineno-1-31" href="#__codelineno-1-31"></a>
+</span><span id="__span-1-32"><a id="__codelineno-1-32" name="__codelineno-1-32" href="#__codelineno-1-32"></a><span class="k">private</span><span class="o">:</span>
+</span><span id="__span-1-33"><a id="__codelineno-1-33" name="__codelineno-1-33" href="#__codelineno-1-33"></a><span class="w">  </span><span class="kt">bool</span><span class="w"> </span><span class="n">ready_</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+</span><span id="__span-1-34"><a id="__codelineno-1-34" name="__codelineno-1-34" href="#__codelineno-1-34"></a><span class="p">};</span>
 </span></code></pre></div>
 <p><a href="../porting/">Porting</a> explains each method and the transfer rules.</p>
 <h2 id="4-centre-the-servo">4. Centre the servo<a class="headerlink" href="#4-centre-the-servo" title="Permanent link">&para;</a></h2>
@@ -1448,8 +1451,8 @@ covers CMake and ESP-IDF.</p>
 </span></code></pre></div>
 <p>What each step does:</p>
 <ol>
-<li><code>EnsureInitialized()</code> calls your port's <code>EnsureInitialized()</code>, then writes MODE1 = <code>0x00</code>, which starts the
-   oscillator. Every other call runs it for you if you skip it.</li>
+<li><code>EnsureInitialized()</code> calls your port's <code>EnsureInitialized()</code>, then writes MODE1 = <code>0x20</code>, which starts the
+   oscillator and turns on register auto-increment. Every other call runs it for you if you skip it.</li>
 <li><code>SetPwmFreq(50.0f)</code> writes PRE_SCALE = 121 (the chip only accepts it while asleep; the driver handles that),
    giving a 20 ms frame.</li>
 <li><code>SetDuty(0, 0.075f)</code> sets channel 0 high for 7.5 % of each frame: 1.5 ms, the centre of a typical servo.</li>
@@ -1474,7 +1477,7 @@ covers CMake and ESP-IDF.</p>
 </tr>
 <tr>
 <td>Output wrong on a channel</td>
-<td>Auto-increment (<a href="../troubleshooting/#channel-outputs-are-wrong-or-do-not-change">Troubleshooting</a>)</td>
+<td>Your port's transfers (<a href="../troubleshooting/#channel-outputs-are-wrong-or-do-not-change">Troubleshooting</a>)</td>
 </tr>
 <tr>
 <td>Servo jitters or sits off centre</td>

@@ -1153,6 +1153,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#fixed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fixed
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#added" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1234,6 +1245,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#fixed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fixed
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#added" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1284,11 +1306,38 @@ affected API.</p>
   architecture, API guide, configuration, porting, examples, troubleshooting), the Doxygen API reference under
   <code>/api/</code>, and every code sample compiled by the host build from <code>tests/docs/</code>.</li>
 <li>Corrected the hardware facts: OE has no internal pull-up, the standby current is 2.2 µA typical (15.5 µA
-  maximum), <code>0x70</code> and <code>0x78</code> to <code>0x7F</code> are not usable device addresses, and the driver does not enable register
-  auto-increment.</li>
+  maximum), and <code>0x70</code> and <code>0x78</code> to <code>0x7F</code> are not usable device addresses.</li>
+</ul>
+<h3 id="fixed">Fixed<a class="headerlink" href="#fixed" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>Reset()</code> / <code>EnsureInitialized()</code> now write MODE1 = <code>0x20</code> (AI = 1) instead of <code>0x00</code>, and every MODE1 write
+  of the driver (<code>SetPwmFreq()</code>, <code>Sleep()</code>, <code>Wake()</code>) keeps AI set and never writes 1 to RESTART by accident.
+  Without AI the register pointer does not advance, so the four-byte writes of <code>SetPwm()</code>, <code>SetDuty()</code>,
+  <code>SetAllPwm()</code>, <code>SetChannelFullOn()</code> and <code>SetChannelFullOff()</code> only reached <code>LEDn_ON_L</code> (datasheet 7.3.1,
+  Table 5). The auto-increment workaround is no longer needed.</li>
+<li><code>Wake()</code>, <code>SetPwmFreq()</code> and <code>Reset()</code> now wait the 500 µs oscillator start-up time after clearing
+  MODE1.SLEEP, and write RESTART only after it (datasheet Table 5 note 2, section 7.3.1.1). <code>Wake()</code> used to
+  write RESTART at once and <code>SetPwmFreq()</code> never wrote it, so the channels did not resume after a frequency
+  change. The wait uses the port's new optional <code>DelayUs()</code> hook, or MODE1 reads when the port has none. The
+  "delay 500 µs after <code>Wake()</code>" workaround is no longer needed.</li>
+<li><code>SetDuty(ch, 0.0f)</code> wrote ON = OFF = 0, and <code>SetPwm()</code> / <code>SetAllPwm()</code> passed equal ticks through, although
+  LEDn_ON and LEDn_OFF must never hold the same count (datasheet 7.3.4). Equal ticks now write the full-OFF bit
+  (<code>LEDn_OFF_H[4]</code>), and <code>SetDuty(ch, 1.0f)</code> sets the full-ON bit (<code>LEDn_ON_H[4]</code>) so that 100 % is constantly
+  high instead of 4095 of 4096 ticks (7.3.3, Table 7). Use of <code>SetChannelFullOn()</code> / <code>SetChannelFullOff()</code> for
+  the two ends is no longer needed.</li>
+<li><code>I2cInterface::GpioSetActive()</code> and <code>GpioSetInactive()</code> called the base class's do-nothing <code>GpioSet()</code>, never
+  the port's, so the OE hooks did nothing. They now dispatch to the port's <code>GpioSet()</code> (CRTP).</li>
+<li><code>cmake --install</code> now produces a usable package: it installs <code>src/pca9685.ipp</code> (which <code>pca9685.hpp</code> includes)
+  under <code>include/hf_pca9685/src/</code> next to the headers in <code>include/hf_pca9685/inc/</code>, and the exported target is
+  <code>hf::pca9685</code>, the same name as the in-tree alias (it was exported as <code>hf::hf_pca9685</code>, from a package that
+  could not compile). A CTest (<code>hf_pca9685_install</code>) builds a <code>find_package()</code> consumer against the install.</li>
 </ul>
 <h3 id="added">Added<a class="headerlink" href="#added" title="Permanent link">&para;</a></h3>
 <ul>
+<li><code>SetOutputEnable(bool enable)</code>: drives the active-low OE pin (datasheet 7.4) through the port's optional
+  <code>GpioSet(CtrlPin::OE, ...)</code>, ACTIVE to enable the outputs (pin low) and INACTIVE to blank them (pin high).
+  Ports without <code>GpioSet()</code> still compile and get the do-nothing default.</li>
+<li>Optional port hook <code>DelayUs(uint32_t us)</code>, used for the 500 µs oscillator start-up (see Fixed).</li>
 <li>Host unit tests (<code>HF_PCA9685_BUILD_TESTS</code>) that run the driver against a model of the PCA9685 registers.</li>
 </ul>
 

@@ -1395,7 +1395,7 @@ software reset.</p>
 <tr>
 <td>MODE1</td>
 <td><code>0x11</code>: SLEEP, ALLCALL</td>
-<td><code>0x00</code>: awake, AI off, ALLCALL off</td>
+<td><code>0x20</code>: awake, AI on, ALLCALL off</td>
 <td><code>Reset()</code>, <code>SetPwmFreq()</code>, <code>Sleep()</code>, <code>Wake()</code></td>
 </tr>
 <tr>
@@ -1418,9 +1418,9 @@ software reset.</p>
 </tr>
 </tbody>
 </table>
-<p>Power-up values: Tables 4 to 8 of the <a href="https://github.com/hardfoc/hf-pca9685-driver/blob/4e73a09acad6e51061c9a3ff987d5c02d9168f0d/docs/datasheet/PCA9685.pdf">datasheet</a>. Because <code>Reset()</code> clears ALLCALL, the
-chip stops answering the All Call address <code>0x70</code> after the driver starts. MODE1.AI is also left at 0; see
-<a href="../troubleshooting/#channel-outputs-are-wrong-or-do-not-change">Troubleshooting</a>.</p>
+<p>Power-up values: Tables 4 to 8 of the <a href="https://github.com/hardfoc/hf-pca9685-driver/blob/cecab2460eb413082c2d33449e4c8f64c97c1f2b/docs/datasheet/PCA9685.pdf">datasheet</a>. Because <code>Reset()</code> clears ALLCALL, the
+chip stops answering the All Call address <code>0x70</code> after the driver starts. MODE1.AI (register auto-increment) is
+set by <code>Reset()</code> and kept by every later MODE1 write, so each four-byte channel write reaches all four registers.</p>
 <h2 id="build-options">Build options<a class="headerlink" href="#build-options" title="Permanent link">&para;</a></h2>
 <table>
 <thead>

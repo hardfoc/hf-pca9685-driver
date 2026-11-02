@@ -1333,7 +1333,7 @@
 <h1 id="porting">Porting<a class="headerlink" href="#porting" title="Permanent link">&para;</a></h1>
 <p>Run the driver on a new MCU by writing one class: the I2C interface.</p>
 <p>The driver never calls your SDK directly. It calls three methods on a class you derive from
-<code>pca9685::I2cInterface&lt;Self&gt;</code> (in <a href="https://github.com/hardfoc/hf-pca9685-driver/blob/4e73a09acad6e51061c9a3ff987d5c02d9168f0d/inc/pca9685_i2c_interface.hpp"><code>inc/pca9685_i2c_interface.hpp</code></a>). The
+<code>pca9685::I2cInterface&lt;Self&gt;</code> (in <a href="https://github.com/hardfoc/hf-pca9685-driver/blob/cecab2460eb413082c2d33449e4c8f64c97c1f2b/inc/pca9685_i2c_interface.hpp"><code>inc/pca9685_i2c_interface.hpp</code></a>). The
 base class uses CRTP: the calls are resolved at compile time, so there are no virtual functions, no vtable and
 nothing to allocate.</p>
 <figure class="hf-figure">
@@ -1344,7 +1344,7 @@ nothing to allocate.</p>
 <details class="hf-figure-desc">
 <summary>Figure description and sources</summary>
 <p>From top to bottom. Your application talks to one PCA9685<I2cType> object, whose public calls (listed from inc/pca9685.hpp) set the frequency, the channels and the output stage. Each call turns into register reads and writes with retries. The communication interface (I2cInterface in inc/pca9685_i2c_interface.hpp) is a CRTP base that forwards them to your class. The platform port is the only code you write: a class that brings the I2C bus up and moves register bytes over it. Below it is the hardware.</p>
-<p>Drawn from: <a href="https://github.com/hardfoc/hf-pca9685-driver/blob/4e73a09acad6e51061c9a3ff987d5c02d9168f0d/inc/pca9685.hpp"><code>inc/pca9685.hpp</code></a> <code>PCA9685 public calls</code>; <a href="https://github.com/hardfoc/hf-pca9685-driver/blob/4e73a09acad6e51061c9a3ff987d5c02d9168f0d/inc/pca9685_i2c_interface.hpp"><code>inc/pca9685_i2c_interface.hpp</code></a> <code>I2cInterface</code>; figure module <a href="https://github.com/hardfoc/hf-pca9685-driver/blob/4e73a09acad6e51061c9a3ff987d5c02d9168f0d/docs/diagrams/figures/driver-layers.py"><code>docs/diagrams/figures/driver-layers.py</code></a>.</p>
+<p>Drawn from: <a href="https://github.com/hardfoc/hf-pca9685-driver/blob/cecab2460eb413082c2d33449e4c8f64c97c1f2b/inc/pca9685.hpp"><code>inc/pca9685.hpp</code></a> <code>PCA9685 public calls</code>; <a href="https://github.com/hardfoc/hf-pca9685-driver/blob/cecab2460eb413082c2d33449e4c8f64c97c1f2b/inc/pca9685_i2c_interface.hpp"><code>inc/pca9685_i2c_interface.hpp</code></a> <code>I2cInterface</code>; figure module <a href="https://github.com/hardfoc/hf-pca9685-driver/blob/cecab2460eb413082c2d33449e4c8f64c97c1f2b/docs/diagrams/figures/driver-layers.py"><code>docs/diagrams/figures/driver-layers.py</code></a>.</p>
 </details>
 <h2 id="what-you-implement">What you implement<a class="headerlink" href="#what-you-implement" title="Permanent link">&para;</a></h2>
 <table>
@@ -1368,13 +1368,20 @@ nothing to allocate.</p>
 <td>One transaction: START, <code>addr</code> + W, <code>reg</code>, repeated START, <code>addr</code> + R, <code>len</code> bytes, STOP</td>
 </tr>
 <tr>
+<td><code>DelayUs(us)</code></td>
+<td>Optional, recommended: wait at least <code>us</code> microseconds. The driver calls it with 500 after it clears MODE1.SLEEP, for the oscillator start-up time (datasheet Table 5, note 2)</td>
+</tr>
+<tr>
 <td><code>GpioSet(pin, signal)</code></td>
-<td>Optional; the driver never calls it (see below)</td>
+<td>Optional: drive the OE pin; called by <code>SetOutputEnable()</code> (see below)</td>
 </tr>
 </tbody>
 </table>
 <p><code>addr</code> is the 7-bit address; shift it left yourself if your SDK wants the 8-bit form. The driver writes at most
 four data bytes per call and reads one.</p>
+<p>The optional methods are found at compile time: a port without them still builds. Without <code>DelayUs()</code> the driver
+covers the 500 µs start-up with 13 one-byte reads of MODE1, enough at any bus clock up to 1 MHz, so give your port
+a <code>DelayUs()</code> if its <code>Read()</code> can return without running a bus transaction.</p>
 <h2 id="i2c-port">I2C port<a class="headerlink" href="#i2c-port" title="Permanent link">&para;</a></h2>
 <div class="language-cpp highlight"><span class="filename">my_i2c.hpp</span><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">MyI2c</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">pca9685</span><span class="o">::</span><span class="n">I2cInterface</span><span class="o">&lt;</span><span class="n">MyI2c</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="k">public</span><span class="o">:</span>
@@ -1404,9 +1411,12 @@ four data bytes per call and reads one.</p>
 </span><span id="__span-0-26"><a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">platform_i2c_write_read</span><span class="p">(</span><span class="n">addr</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">reg</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">data</span><span class="p">,</span><span class="w"> </span><span class="n">len</span><span class="p">);</span>
 </span><span id="__span-0-27"><a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a><span class="w">  </span><span class="p">}</span>
 </span><span id="__span-0-28"><a id="__codelineno-0-28" name="__codelineno-0-28" href="#__codelineno-0-28"></a>
-</span><span id="__span-0-29"><a id="__codelineno-0-29" name="__codelineno-0-29" href="#__codelineno-0-29"></a><span class="k">private</span><span class="o">:</span>
-</span><span id="__span-0-30"><a id="__codelineno-0-30" name="__codelineno-0-30" href="#__codelineno-0-30"></a><span class="w">  </span><span class="kt">bool</span><span class="w"> </span><span class="n">ready_</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
-</span><span id="__span-0-31"><a id="__codelineno-0-31" name="__codelineno-0-31" href="#__codelineno-0-31"></a><span class="p">};</span>
+</span><span id="__span-0-29"><a id="__codelineno-0-29" name="__codelineno-0-29" href="#__codelineno-0-29"></a><span class="w">  </span><span class="c1">// Optional: wait at least `us` microseconds. The driver uses it for the 500 us oscillator start-up.</span>
+</span><span id="__span-0-30"><a id="__codelineno-0-30" name="__codelineno-0-30" href="#__codelineno-0-30"></a><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="n">DelayUs</span><span class="p">(</span><span class="kt">uint32_t</span><span class="w"> </span><span class="n">us</span><span class="p">)</span><span class="w"> </span><span class="k">noexcept</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">platform_delay_us</span><span class="p">(</span><span class="n">us</span><span class="p">);</span><span class="w"> </span><span class="p">}</span>
+</span><span id="__span-0-31"><a id="__codelineno-0-31" name="__codelineno-0-31" href="#__codelineno-0-31"></a>
+</span><span id="__span-0-32"><a id="__codelineno-0-32" name="__codelineno-0-32" href="#__codelineno-0-32"></a><span class="k">private</span><span class="o">:</span>
+</span><span id="__span-0-33"><a id="__codelineno-0-33" name="__codelineno-0-33" href="#__codelineno-0-33"></a><span class="w">  </span><span class="kt">bool</span><span class="w"> </span><span class="n">ready_</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+</span><span id="__span-0-34"><a id="__codelineno-0-34" name="__codelineno-0-34" href="#__codelineno-0-34"></a><span class="p">};</span>
 </span></code></pre></div>
 <p>Rules the transfer must follow:</p>
 <ul>
@@ -1421,16 +1431,27 @@ four data bytes per call and reads one.</p>
 <li><strong>Clock up to 1 MHz.</strong> Start at 100 kHz for bring-up; 400 kHz suits most boards.</li>
 </ul>
 <h2 id="the-oe-pin">The OE pin<a class="headerlink" href="#the-oe-pin" title="Permanent link">&para;</a></h2>
-<p><code>I2cInterface</code> declares <code>GpioSet(CtrlPin::OE, GpioSignal)</code> and helpers <code>GpioSetActive()</code> and <code>GpioSetInactive()</code>,
-with a do-nothing default. The driver never calls them, and the helpers call the base class's <code>GpioSet()</code>, not
-yours. Drive OE from your application instead: low to enable the outputs, high to blank them.</p>
+<p>OE is active low (datasheet section 7.4): low, the outputs follow their registers; high, they take the
+MODE2.OUTNE state, low by default. If OE is wired to a GPIO, declare <code>GpioSet()</code> in your port and map
+<code>GpioSignal::ACTIVE</code> (outputs enabled) to a low level:</p>
+<div class="language-cpp highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1">// OE is active low: ACTIVE (outputs enabled) is a LOW level, INACTIVE (blanked) a HIGH level.</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="kt">void</span><span class="w"> </span><span class="nf">GpioSet</span><span class="p">(</span><span class="n">pca9685</span><span class="o">::</span><span class="n">CtrlPin</span><span class="w"> </span><span class="n">pin</span><span class="p">,</span><span class="w"> </span><span class="n">pca9685</span><span class="o">::</span><span class="n">GpioSignal</span><span class="w"> </span><span class="n">signal</span><span class="p">)</span><span class="w"> </span><span class="k">noexcept</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">pin</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">pca9685</span><span class="o">::</span><span class="n">CtrlPin</span><span class="o">::</span><span class="n">OE</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">    </span><span class="n">platform_gpio_write</span><span class="p">(</span><span class="n">OE_GPIO</span><span class="p">,</span><span class="w"> </span><span class="n">signal</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">pca9685</span><span class="o">::</span><span class="n">GpioSignal</span><span class="o">::</span><span class="n">INACTIVE</span><span class="p">);</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">  </span><span class="p">}</span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="p">}</span>
+</span></code></pre></div>
+<p><code>SetOutputEnable(true)</code> calls <code>GpioSet(CtrlPin::OE, GpioSignal::ACTIVE)</code> and <code>SetOutputEnable(false)</code> calls it
+with <code>INACTIVE</code>; the base class helpers <code>GpioSetActive()</code> and <code>GpioSetInactive()</code> reach your <code>GpioSet()</code> too. A
+port without <code>GpioSet()</code> inherits a do-nothing default, for boards with OE tied low. The driver never drives OE
+on its own, so your port can hold the outputs blanked from power-up until the channels are programmed.</p>
 <h2 id="reference-implementation">Reference implementation<a class="headerlink" href="#reference-implementation" title="Permanent link">&para;</a></h2>
-<p>The ESP32 examples use <a href="https://github.com/hardfoc/hf-pca9685-driver/blob/4e73a09acad6e51061c9a3ff987d5c02d9168f0d/examples/esp32/main/esp32_pca9685_bus.hpp"><code>esp32_pca9685_bus.hpp</code></a>: an ESP-IDF
+<p>The ESP32 examples use <a href="https://github.com/hardfoc/hf-pca9685-driver/blob/cecab2460eb413082c2d33449e4c8f64c97c1f2b/examples/esp32/main/esp32_pca9685_bus.hpp"><code>esp32_pca9685_bus.hpp</code></a>: an ESP-IDF
 <code>i2c_master</code> port that caches the device handle, with a <code>RetryDelay()</code> (<code>vTaskDelay</code> of 1 ms) that you pass to
 <code>SetRetryDelay()</code>. Start from it for any ESP-IDF target.</p>
 <h2 id="check-your-port">Check your port<a class="headerlink" href="#check-your-port" title="Permanent link">&para;</a></h2>
 <ol>
-<li>Build it: the port on this page is compiled by the host CI from <a href="https://github.com/hardfoc/hf-pca9685-driver/blob/4e73a09acad6e51061c9a3ff987d5c02d9168f0d/tests/docs/my_i2c.hpp"><code>tests/docs/</code></a>,
+<li>Build it: the port on this page is compiled by the host CI from <a href="https://github.com/hardfoc/hf-pca9685-driver/blob/cecab2460eb413082c2d33449e4c8f64c97c1f2b/tests/docs/my_i2c.hpp"><code>tests/docs/</code></a>,
    with the driver instantiated over it.</li>
 <li>Call <code>EnsureInitialized()</code>: <code>true</code> proves a write to MODE1 was acknowledged at your address.</li>
 <li>Call <code>SetPwmFreq(50.0f)</code>, then <code>GetPrescale()</code>: 121 proves reads and writes both work.</li>

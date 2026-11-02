@@ -1340,7 +1340,7 @@
 <details class="hf-figure-desc">
 <summary>Figure description and sources</summary>
 <p>From top to bottom. Your application talks to one PCA9685<I2cType> object, whose public calls (listed from inc/pca9685.hpp) set the frequency, the channels and the output stage. Each call turns into register reads and writes with retries. The communication interface (I2cInterface in inc/pca9685_i2c_interface.hpp) is a CRTP base that forwards them to your class. The platform port is the only code you write: a class that brings the I2C bus up and moves register bytes over it. Below it is the hardware.</p>
-<p>Drawn from: <a href="https://github.com/hardfoc/hf-pca9685-driver/blob/4e73a09acad6e51061c9a3ff987d5c02d9168f0d/inc/pca9685.hpp"><code>inc/pca9685.hpp</code></a> <code>PCA9685 public calls</code>; <a href="https://github.com/hardfoc/hf-pca9685-driver/blob/4e73a09acad6e51061c9a3ff987d5c02d9168f0d/inc/pca9685_i2c_interface.hpp"><code>inc/pca9685_i2c_interface.hpp</code></a> <code>I2cInterface</code>; figure module <a href="https://github.com/hardfoc/hf-pca9685-driver/blob/4e73a09acad6e51061c9a3ff987d5c02d9168f0d/docs/diagrams/figures/driver-layers.py"><code>docs/diagrams/figures/driver-layers.py</code></a>.</p>
+<p>Drawn from: <a href="https://github.com/hardfoc/hf-pca9685-driver/blob/cecab2460eb413082c2d33449e4c8f64c97c1f2b/inc/pca9685.hpp"><code>inc/pca9685.hpp</code></a> <code>PCA9685 public calls</code>; <a href="https://github.com/hardfoc/hf-pca9685-driver/blob/cecab2460eb413082c2d33449e4c8f64c97c1f2b/inc/pca9685_i2c_interface.hpp"><code>inc/pca9685_i2c_interface.hpp</code></a> <code>I2cInterface</code>; figure module <a href="https://github.com/hardfoc/hf-pca9685-driver/blob/cecab2460eb413082c2d33449e4c8f64c97c1f2b/docs/diagrams/figures/driver-layers.py"><code>docs/diagrams/figures/driver-layers.py</code></a>.</p>
 </details>
 <h2 id="the-three-layers">The three layers<a class="headerlink" href="#the-three-layers" title="Permanent link">&para;</a></h2>
 <table>
@@ -1354,12 +1354,12 @@
 <tbody>
 <tr>
 <td><strong>Hardware-agnostic core</strong>: <code>PCA9685&lt;I2cType&gt;</code></td>
-<td><a href="https://github.com/hardfoc/hf-pca9685-driver/blob/4e73a09acad6e51061c9a3ff987d5c02d9168f0d/inc/pca9685.hpp"><code>inc/pca9685.hpp</code></a>, <a href="https://github.com/hardfoc/hf-pca9685-driver/blob/4e73a09acad6e51061c9a3ff987d5c02d9168f0d/src/pca9685.ipp"><code>src/pca9685.ipp</code></a></td>
+<td><a href="https://github.com/hardfoc/hf-pca9685-driver/blob/cecab2460eb413082c2d33449e4c8f64c97c1f2b/inc/pca9685.hpp"><code>inc/pca9685.hpp</code></a>, <a href="https://github.com/hardfoc/hf-pca9685-driver/blob/cecab2460eb413082c2d33449e4c8f64c97c1f2b/src/pca9685.ipp"><code>src/pca9685.ipp</code></a></td>
 <td>Never, for a new board</td>
 </tr>
 <tr>
 <td><strong>Communication interface</strong>: <code>I2cInterface&lt;Derived&gt;</code></td>
-<td><a href="https://github.com/hardfoc/hf-pca9685-driver/blob/4e73a09acad6e51061c9a3ff987d5c02d9168f0d/inc/pca9685_i2c_interface.hpp"><code>inc/pca9685_i2c_interface.hpp</code></a></td>
+<td><a href="https://github.com/hardfoc/hf-pca9685-driver/blob/cecab2460eb413082c2d33449e4c8f64c97c1f2b/inc/pca9685_i2c_interface.hpp"><code>inc/pca9685_i2c_interface.hpp</code></a></td>
 <td>Never</td>
 </tr>
 <tr>

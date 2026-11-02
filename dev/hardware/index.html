@@ -1376,7 +1376,7 @@
 
 <h1 id="hardware">Hardware<a class="headerlink" href="#hardware" title="Permanent link">&para;</a></h1>
 <p>What to connect between your MCU and a PCA9685, with which bus settings, and the board-level traps to avoid.</p>
-<p>All values here come from the <a href="https://github.com/hardfoc/hf-pca9685-driver/blob/4e73a09acad6e51061c9a3ff987d5c02d9168f0d/docs/datasheet/PCA9685.pdf">PCA9685 datasheet</a> (Rev. 4, 16 April 2015); page numbers
+<p>All values here come from the <a href="https://github.com/hardfoc/hf-pca9685-driver/blob/cecab2460eb413082c2d33449e4c8f64c97c1f2b/docs/datasheet/PCA9685.pdf">PCA9685 datasheet</a> (Rev. 4, 16 April 2015); page numbers
 refer to it. Pin numbers are for the TSSOP28 package. When they disagree with a breakout board's schematic, the
 schematic wins.</p>
 <p><img alt="Wiring of one PCA9685 with I2C pull-ups and 16 PWM outputs, and two chips sharing one I2C bus at addresses 0x40
@@ -1538,8 +1538,11 @@ Your port turns each call into exactly one transaction (<a href="../porting/">Po
     H-&gt;&gt;C: write MODE1 = old | SLEEP (RESTART bit cleared)
     Note over C: oscillator off, PRE_SCALE writable
     H-&gt;&gt;C: write PRE_SCALE = 121
-    H-&gt;&gt;C: write MODE1 = old
-    Note over C: oscillator restarts, up to 500 us</code></pre>
+    H-&gt;&gt;C: write MODE1 = old (SLEEP = 0)
+    Note over C: oscillator restarts, up to 500 us
+    Note over H: DelayUs(500)
+    H-&gt;&gt;C: write MODE1 = old | RESTART
+    Note over C: running channels resume</code></pre>
 <h2 id="output-stage">Output stage<a class="headerlink" href="#output-stage" title="Permanent link">&para;</a></h2>
 <p>The 16 outputs share one configuration in MODE2 (Table 6, p. 16).</p>
 <table>
@@ -1581,8 +1584,9 @@ Your port turns each call into exactly one transaction (<a href="../porting/">Po
 <p>Totem pole sinks 25 mA and sources 10 mA at 5 V; open drain sinks 25 mA. LEDs with built-in Zener diodes must be
 driven in open-drain mode (Table 6, note 1). For a servo signal or a logic-level gate driver input use totem
 pole, <code>INVRT = 0</code>.</p>
-<p>OE is active low. Low: outputs follow their registers. High: outputs take the OUTNE state, by default low. The
-driver does not drive OE; tie it low or control it from a GPIO yourself.</p>
+<p>OE is active low (section 7.4, p. 27). Low: outputs follow their registers. High: outputs take the OUTNE state,
+by default low. Tie it low, or wire it to a GPIO and drive it with <code>SetOutputEnable()</code> through your port's
+<code>GpioSet()</code> (<a href="../porting/#the-oe-pin">Porting</a>).</p>
 <h2 id="power">Power<a class="headerlink" href="#power" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
@@ -1670,12 +1674,12 @@ ground are shared with the PCA9685.</p>
 <tr>
 <td>Oscillator start after MODE1.SLEEP is cleared</td>
 <td>500 µs max</td>
-<td>Not waited for: delay yourself before relying on output timing (Table 5, note 2)</td>
+<td><code>Reset()</code>, <code>Wake()</code> and <code>SetPwmFreq()</code> wait 500 µs before they return (Table 5, note 2)</td>
 </tr>
 <tr>
 <td>SLEEP low before writing RESTART</td>
 <td>500 µs min</td>
-<td><code>Wake()</code> writes RESTART at once (section 7.3.1.1, p. 15)</td>
+<td><code>Wake()</code> and <code>SetPwmFreq()</code> write RESTART only after the 500 µs wait (section 7.3.1.1, p. 15)</td>
 </tr>
 <tr>
 <td>OE to output</td>
@@ -1687,7 +1691,7 @@ ground are shared with the PCA9685.</p>
 <h2 id="breakout-boards">Breakout boards<a class="headerlink" href="#breakout-boards" title="Permanent link">&para;</a></h2>
 <p>The <a href="../examples/">ESP32 examples</a> run on an ESP32-S3 with a PCA9685 at <code>0x40</code>: SDA on GPIO4, SCL on GPIO5,
 100 kHz, OE not driven. The pins are in
-<a href="https://github.com/hardfoc/hf-pca9685-driver/blob/4e73a09acad6e51061c9a3ff987d5c02d9168f0d/examples/esp32/main/esp32_pca9685_test_config.hpp"><code>esp32_pca9685_test_config.hpp</code></a>. Common 16-channel servo
+<a href="https://github.com/hardfoc/hf-pca9685-driver/blob/cecab2460eb413082c2d33449e4c8f64c97c1f2b/examples/esp32/main/esp32_pca9685_test_config.hpp"><code>esp32_pca9685_test_config.hpp</code></a>. Common 16-channel servo
 breakouts fit the I2C pull-ups, a pull-down on OE and solder jumpers for A0 to A5; check the board's schematic.</p>
 <h2 id="reference-documents">Reference documents<a class="headerlink" href="#reference-documents" title="Permanent link">&para;</a></h2>
 <table>
@@ -1699,7 +1703,7 @@ breakouts fit the I2C pull-ups, a pull-down on OE and solder jumpers for A0 to A
 </thead>
 <tbody>
 <tr>
-<td><a href="https://github.com/hardfoc/hf-pca9685-driver/blob/4e73a09acad6e51061c9a3ff987d5c02d9168f0d/docs/datasheet/PCA9685.pdf">PCA9685 datasheet</a></td>
+<td><a href="https://github.com/hardfoc/hf-pca9685-driver/blob/cecab2460eb413082c2d33449e4c8f64c97c1f2b/docs/datasheet/PCA9685.pdf">PCA9685 datasheet</a></td>
 <td>Pins, registers, I2C protocol, electrical limits</td>
 </tr>
 <tr>

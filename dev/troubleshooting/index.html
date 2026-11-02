@@ -1385,7 +1385,7 @@
 <tr>
 <td>OE high or floating</td>
 <td>OE pin level</td>
-<td>Tie OE low or drive it low; it has no internal pull-up</td>
+<td>Tie OE low, or call <code>SetOutputEnable(true)</code> with a port that implements <code>GpioSet()</code>; OE has no internal pull-up</td>
 </tr>
 <tr>
 <td>Chip asleep</td>
@@ -1395,7 +1395,7 @@
 <tr>
 <td>Channel full off</td>
 <td><code>LEDn_OFF_H</code> bit 4</td>
-<td><code>SetPwm()</code>, <code>SetDuty()</code> or <code>SetChannelFullOn()</code> clear it</td>
+<td><code>SetPwm()</code> with ON ≠ OFF, <code>SetDuty()</code> above 0 or <code>SetChannelFullOn()</code> clear it; <code>SetDuty(ch, 0.0f)</code> and equal ticks set it</td>
 </tr>
 <tr>
 <td>Load wired to the wrong side</td>
@@ -1405,18 +1405,30 @@
 </tbody>
 </table>
 <h2 id="channel-outputs-are-wrong-or-do-not-change">Channel outputs are wrong or do not change<a class="headerlink" href="#channel-outputs-are-wrong-or-do-not-change" title="Permanent link">&para;</a></h2>
-<p>The driver writes each channel as one four-byte transaction starting at <code>LEDn_ON_L</code>, but it never sets MODE1.AI
-(register auto-increment), and <code>Reset()</code> clears it. According to the datasheet (Table 5, p. 14) the register
-pointer then stays on <code>LEDn_ON_L</code>, so the four bytes do not reach <code>LEDn_ON_H</code>, <code>LEDn_OFF_L</code> and <code>LEDn_OFF_H</code>.
-Until the driver sets AI itself, set it once through your port after initialisation:</p>
-<div class="language-cpp highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">pwm</span><span class="p">.</span><span class="n">EnsureInitialized</span><span class="p">())</span><span class="w"> </span><span class="p">{</span><span class="w">                 </span><span class="c1">// leaves MODE1 = 0x00</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">}</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="k">const</span><span class="w"> </span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">mode1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mh">0x20</span><span class="p">;</span><span class="w">                     </span><span class="c1">// MODE1.AI = 1, oscillator on, ALLCALL off</span>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="k">return</span><span class="w"> </span><span class="n">bus</span><span class="p">.</span><span class="n">Write</span><span class="p">(</span><span class="mh">0x40</span><span class="p">,</span><span class="w"> </span><span class="mh">0x00</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">mode1</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">);</span><span class="w">        </span><span class="c1">// once, before the first channel write</span>
-</span></code></pre></div>
-<p>The driver's later MODE1 writes (<code>SetPwmFreq()</code>, <code>Sleep()</code>, <code>Wake()</code>) keep the bit; a later <code>Reset()</code> clears it
-again.</p>
+<p>The driver writes each channel as one four-byte transaction starting at <code>LEDn_ON_L</code> and relies on MODE1.AI
+(register auto-increment) to move the register pointer through <code>LEDn_ON_H</code>, <code>LEDn_OFF_L</code> and <code>LEDn_OFF_H</code>
+(Table 5, p. 14). <code>Reset()</code> sets AI and every later MODE1 write of the driver keeps it.</p>
+<table>
+<thead>
+<tr>
+<th>Cause</th>
+<th>Check</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Port splits or truncates the transfer</td>
+<td>A logic analyser on the bus: one START, five data bytes, one STOP</td>
+<td>One call, one transaction (<a href="../porting/#i2c-port">Porting</a>)</td>
+</tr>
+<tr>
+<td>Your own MODE1 write cleared AI</td>
+<td>MODE1 bit 5</td>
+<td>Keep bit 5 set in raw MODE1 writes, or call <code>Reset()</code> again</td>
+</tr>
+</tbody>
+</table>
 <h2 id="the-frequency-is-off">The frequency is off<a class="headerlink" href="#the-frequency-is-off" title="Permanent link">&para;</a></h2>
 <table>
 <thead>

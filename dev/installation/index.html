@@ -641,6 +641,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#installed-package" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Installed package
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#esp-idf" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1273,6 +1284,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#installed-package" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Installed package
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#esp-idf" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1372,11 +1394,21 @@ and the generated version header) and requires C++20 (<code>cxx_std_20</code>), 
 </tr>
 </tbody>
 </table>
-<p>Use the driver from its source tree as above. The <code>install()</code> rules do not yet produce a usable package: they
-leave out <code>src/pca9685.ipp</code>, which the header includes, and export the target as <code>hf::hf_pca9685</code>.</p>
+<h2 id="installed-package">Installed package<a class="headerlink" href="#installed-package" title="Permanent link">&para;</a></h2>
+<p>To use the driver without adding its source tree to your build, install it and find the package:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>cmake<span class="w"> </span>-S<span class="w"> </span>external/hf-pca9685-driver<span class="w"> </span>-B<span class="w"> </span>build-pca9685
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>cmake<span class="w"> </span>--install<span class="w"> </span>build-pca9685<span class="w"> </span>--prefix<span class="w"> </span>/opt/hardfoc
+</span></code></pre></div>
+<div class="language-cmake highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="nb">find_package</span><span class="p">(</span><span class="s">hf_pca9685</span><span class="w"> </span><span class="s">1.0</span><span class="w"> </span><span class="s">REQUIRED</span><span class="p">)</span><span class="w">            </span><span class="c"># with CMAKE_PREFIX_PATH=/opt/hardfoc</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="nb">target_link_libraries</span><span class="p">(</span><span class="s">my_app</span><span class="w"> </span><span class="s">PRIVATE</span><span class="w"> </span><span class="s">hf::pca9685</span><span class="p">)</span>
+</span></code></pre></div>
+<p>The headers and the generated <code>pca9685_version.h</code> go to <code>include/hf_pca9685/inc/</code> and the template
+implementation the header includes to <code>include/hf_pca9685/src/pca9685.ipp</code>; the target's include directory is
+<code>include/hf_pca9685/inc</code>, so the code is the same as with <code>add_subdirectory()</code>: <code>#include "pca9685.hpp"</code>. The host
+CI installs the package and builds a consumer against it on every pull request (<a href="../testing/">Testing</a>).</p>
 <h2 id="esp-idf">ESP-IDF<a class="headerlink" href="#esp-idf" title="Permanent link">&para;</a></h2>
 <p>The ESP-IDF component wrapper is
-<a href="https://github.com/hardfoc/hf-pca9685-driver/blob/4e73a09acad6e51061c9a3ff987d5c02d9168f0d/examples/esp32/components/hf_pca9685/CMakeLists.txt"><code>examples/esp32/components/hf_pca9685/</code></a>. Copy that
+<a href="https://github.com/hardfoc/hf-pca9685-driver/blob/cecab2460eb413082c2d33449e4c8f64c97c1f2b/examples/esp32/components/hf_pca9685/CMakeLists.txt"><code>examples/esp32/components/hf_pca9685/</code></a>. Copy that
 folder into your project's <code>components/</code> (or point <code>EXTRA_COMPONENT_DIRS</code> at it) and set the <code>HF_PCA9685_ROOT</code>
 cache variable to the driver checkout; the wrapper stops with a clear message when the path is wrong. Your
 component then declares <code>REQUIRES hf_pca9685</code>.</p>
@@ -1392,24 +1424,24 @@ component then declares <code>REQUIRES hf_pca9685</code>.</p>
 <tbody>
 <tr>
 <td>Settings</td>
-<td><a href="https://github.com/hardfoc/hf-pca9685-driver/blob/4e73a09acad6e51061c9a3ff987d5c02d9168f0d/cmake/hf_pca9685_build_settings.cmake"><code>cmake/hf_pca9685_build_settings.cmake</code></a></td>
+<td><a href="https://github.com/hardfoc/hf-pca9685-driver/blob/cecab2460eb413082c2d33449e4c8f64c97c1f2b/cmake/hf_pca9685_build_settings.cmake"><code>cmake/hf_pca9685_build_settings.cmake</code></a></td>
 <td>Target name, include directories, version: the single source of truth</td>
 </tr>
 <tr>
 <td>Library</td>
-<td><a href="https://github.com/hardfoc/hf-pca9685-driver/blob/4e73a09acad6e51061c9a3ff987d5c02d9168f0d/CMakeLists.txt"><code>CMakeLists.txt</code></a></td>
-<td>INTERFACE target, install and package export</td>
+<td><a href="https://github.com/hardfoc/hf-pca9685-driver/blob/cecab2460eb413082c2d33449e4c8f64c97c1f2b/CMakeLists.txt"><code>CMakeLists.txt</code></a></td>
+<td>INTERFACE target, install rules and the <code>hf_pca9685</code> package export</td>
 </tr>
 <tr>
 <td>ESP-IDF</td>
-<td><a href="https://github.com/hardfoc/hf-pca9685-driver/blob/4e73a09acad6e51061c9a3ff987d5c02d9168f0d/examples/esp32/components/hf_pca9685/CMakeLists.txt"><code>examples/esp32/components/hf_pca9685/CMakeLists.txt</code></a></td>
+<td><a href="https://github.com/hardfoc/hf-pca9685-driver/blob/cecab2460eb413082c2d33449e4c8f64c97c1f2b/examples/esp32/components/hf_pca9685/CMakeLists.txt"><code>examples/esp32/components/hf_pca9685/CMakeLists.txt</code></a></td>
 <td>IDF component wrapper over the same settings</td>
 </tr>
 </tbody>
 </table>
 <p>The version is set once in the settings file and written into <code>pca9685_version.h</code> in the build tree at
 configure time. Read it at run time:</p>
-<div class="language-cpp highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="k">const</span><span class="w"> </span><span class="kt">char</span><span class="o">*</span><span class="w"> </span><span class="n">v</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">pca9685</span><span class="o">::</span><span class="n">PCA9685</span><span class="o">&lt;</span><span class="n">MyI2c</span><span class="o">&gt;::</span><span class="n">GetDriverVersion</span><span class="p">();</span><span class="w">   </span><span class="c1">// "1.0.0"</span>
+<div class="language-cpp highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="k">const</span><span class="w"> </span><span class="kt">char</span><span class="o">*</span><span class="w"> </span><span class="n">v</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">pca9685</span><span class="o">::</span><span class="n">PCA9685</span><span class="o">&lt;</span><span class="n">MyI2c</span><span class="o">&gt;::</span><span class="n">GetDriverVersion</span><span class="p">();</span><span class="w">   </span><span class="c1">// "1.0.0"</span>
 </span></code></pre></div>
 <h2 id="next">Next<a class="headerlink" href="#next" title="Permanent link">&para;</a></h2>
 <p><a href="../quickstart/">Quickstart</a> wires the chip and centres a servo; <a href="../porting/">Porting</a> writes the I2C interface
