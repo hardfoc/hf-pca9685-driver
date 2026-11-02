@@ -23,7 +23,7 @@ Start with the error flags of the failing call (`GetErrorFlags()`, [API guide](a
 | --- | --- | --- |
 | OE high or floating | OE pin level | Tie OE low or drive it low; it has no internal pull-up |
 | Chip asleep | MODE1 bit 4 | `Wake()`; `Sleep()` and power-up both leave SLEEP set until the driver starts |
-| Channel full off | `LEDn_OFF_H` bit 4 | `SetPwm()`, `SetDuty()` or `SetChannelFullOn()` clear it |
+| Channel full off | `LEDn_OFF_H` bit 4 | `SetPwm()` with ON ≠ OFF, `SetDuty()` above 0 or `SetChannelFullOn()` clear it; `SetDuty(ch, 0.0f)` and equal ticks set it |
 | Load wired to the wrong side | Totem pole versus open drain, INVRT | [Hardware](hardware.md#output-stage) |
 
 ## Channel outputs are wrong or do not change

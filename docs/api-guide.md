@@ -55,7 +55,7 @@ briefly stops the oscillator and every output; call it once at start-up, not in 
 
 | Call | Use it for |
 | --- | --- |
-| `SetDuty(ch, duty)` | LED brightness, motor speed: `duty` from 0.0 to 1.0, clamped, rising edge at tick 0 |
+| `SetDuty(ch, duty)` | LED brightness, motor speed: `duty` from 0.0 to 1.0, clamped, rising edge at tick 0; 0.0 is full off, 1.0 full on |
 | `SetPwm(ch, on, off)` | Exact pulse widths (servos) and phase-shifted channels |
 | `SetChannelFullOn(ch)`, `SetChannelFullOff(ch)` | A constant high or low, with no PWM edges |
 | `SetAllPwm(on, off)` | The same value on all 16 channels in one write |

@@ -99,9 +99,7 @@ bool pca9685::PCA9685<I2cType>::SetPwm(uint8_t channel, uint16_t on_time,
     return false;
   }
   uint8_t reg = static_cast<uint8_t>(Register::LED0_ON_L) + (4 * channel);
-  ::std::array<uint8_t, 4> data = {
-      static_cast<uint8_t>(on_time & 0xFF), static_cast<uint8_t>((on_time >> 8) & 0x0F),
-      static_cast<uint8_t>(off_time & 0xFF), static_cast<uint8_t>((off_time >> 8) & 0x0F)};
+  const auto data = pwmFrame(on_time, off_time);
   if (!writeRegBlock(reg, data.data(), 4)) {
     return false;
   }
@@ -115,6 +113,12 @@ template <typename I2cType>
 bool pca9685::PCA9685<I2cType>::SetDuty(uint8_t channel, float duty) noexcept {
   duty = ::std::max(duty, 0.0F);
   duty = ::std::min(duty, 1.0F);
+  if (duty >= 1.0F) {
+    // 100 %: the full-ON bit, LEDn_ON_H[4] (datasheet 7.3.3, Table 7, p. 24). ON = 0, OFF = 4095
+    // would leave the output low for one tick of every period.
+    return SetChannelFullOn(channel);
+  }
+  // Rounds to 0 for duty < 1/8190: SetPwm() turns ON = OFF = 0 into full OFF.
   auto off_time = static_cast<uint16_t>(lroundf((duty * MAX_PWM_)));
   return SetPwm(channel, 0, off_time);
 }
@@ -129,9 +133,7 @@ bool pca9685::PCA9685<I2cType>::SetAllPwm(uint16_t on_time, uint16_t off_time) n
     setError(Error::OutOfRange);
     return false;
   }
-  ::std::array<uint8_t, 4> data = {
-      static_cast<uint8_t>(on_time & 0xFF), static_cast<uint8_t>((on_time >> 8) & 0x0F),
-      static_cast<uint8_t>(off_time & 0xFF), static_cast<uint8_t>((off_time >> 8) & 0x0F)};
+  const auto data = pwmFrame(on_time, off_time);
   if (!writeRegBlock(static_cast<uint8_t>(Register::ALL_LED_ON_L), data.data(), 4)) {
     return false;
   }
@@ -365,6 +367,18 @@ void pca9685::PCA9685<I2cType>::waitOscillatorStartup() noexcept {
       (void)i2c_->Read(addr_, static_cast<uint8_t>(Register::MODE1), &scratch, 1);
     }
   }
+}
+
+template <typename I2cType>
+::std::array<uint8_t, 4> pca9685::PCA9685<I2cType>::pwmFrame(uint16_t on_time,
+                                                             uint16_t off_time) noexcept {
+  if (on_time == off_time) {
+    // LEDn_ON and LEDn_OFF must never hold the same count (datasheet 7.3.4, p. 25). Equal ticks
+    // mean zero duty, so write the full-OFF bit, LEDn_OFF_H[4], instead.
+    return {0x00, 0x00, 0x00, 0x10};
+  }
+  return {static_cast<uint8_t>(on_time & 0xFF), static_cast<uint8_t>((on_time >> 8) & 0x0F),
+          static_cast<uint8_t>(off_time & 0xFF), static_cast<uint8_t>((off_time >> 8) & 0x0F)};
 }
 
 template <typename I2cType>

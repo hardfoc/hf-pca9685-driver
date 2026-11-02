@@ -140,6 +140,10 @@ public:
 
   /**
    * @brief Set the PWM on/off time for a channel.
+   *
+   * ON and OFF must never hold the same count (datasheet 7.3.4, p. 25): when @p on_time equals
+   * @p off_time (zero duty) the driver writes the full-OFF bit, LEDn_OFF_H[4], instead.
+   *
    * @param channel Channel number (0-15).
    * @param on_time Tick count when signal turns ON (0-4095).
    * @param off_time Tick count when signal turns OFF (0-4095).
@@ -149,14 +153,23 @@ public:
 
   /**
    * @brief Set the duty cycle for a channel (0.0-1.0).
+   *
+   * Writes ON = 0, OFF = lround(duty * 4095). The two ends use the full-OFF and full-ON bits
+   * (datasheet 7.3.3, Table 7, p. 24): a duty that rounds to OFF = 0 sets LEDn_OFF_H[4] (constantly
+   * low), and 1.0 sets LEDn_ON_H[4] (constantly high), so ON and OFF never hold the same count
+   * (7.3.4).
+   *
    * @param channel Channel number (0-15).
-   * @param duty Duty cycle (0.0 = always off, 1.0 = always on).
+   * @param duty Duty cycle, clamped to 0.0 (always off) .. 1.0 (always on).
    * @return true on success; false on I2C failure or invalid parameter.
    */
   bool SetDuty(uint8_t channel, float duty) noexcept;
 
   /**
    * @brief Set all channels to the same PWM value.
+   *
+   * Equal @p on_time and @p off_time write ALL_LED_OFF_H[4] (full OFF), as in SetPwm().
+   *
    * @param on_time Tick count when signal turns ON (0-4095).
    * @param off_time Tick count when signal turns OFF (0-4095).
    * @return true on success; false on I2C failure.
@@ -426,6 +439,15 @@ private:
    * none.
    */
   void waitOscillatorStartup() noexcept;
+
+  /**
+   * @brief Build the four LEDn / ALL_LED bytes for ON and OFF ticks; equal ticks give full OFF.
+   * @param on_time ON tick (0-4095).
+   * @param off_time OFF tick (0-4095).
+   * @return LEDn_ON_L, LEDn_ON_H, LEDn_OFF_L, LEDn_OFF_H.
+   */
+  [[nodiscard]] static ::std::array<uint8_t, 4> pwmFrame(uint16_t on_time,
+                                                         uint16_t off_time) noexcept;
 
   /**
    * @brief Read-modify-write a single register.

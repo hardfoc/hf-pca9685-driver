@@ -106,16 +106,20 @@ TEST_CASE("SetPwm rejects channel 16 and ticks above 4095 without bus traffic") 
   CHECK_EQ(bus.log.size(), before);
 }
 
-TEST_CASE("SetDuty maps 0..1 to OFF ticks 0..4095 and clamps") {
+TEST_CASE("SetDuty maps 0..1 to OFF ticks and clamps") {
   MockPca9685 bus;
   Driver pwm(&bus, 0x40);
   REQUIRE(pwm.SetDuty(0, 0.5f));
+  auto on = [&] { const auto& d = bus.log.back().data; return d[0] | (d[1] << 8); };
   auto off = [&] { const auto& d = bus.log.back().data; return d[2] | (d[3] << 8); };
+  CHECK_EQ(on(), 0);
   CHECK_EQ(off(), 2048);                          // lround(0.5 * 4095)
-  REQUIRE(pwm.SetDuty(0, 2.0f));
+  REQUIRE(pwm.SetDuty(0, 0.9999f));
   CHECK_EQ(off(), 4095);
-  REQUIRE(pwm.SetDuty(0, -1.0f));
-  CHECK_EQ(off(), 0);
+  REQUIRE(pwm.SetDuty(0, 2.0f));                  // clamped to 1.0: full ON
+  CHECK_EQ(on(), 0x1000);
+  REQUIRE(pwm.SetDuty(0, -1.0f));                 // clamped to 0.0: full OFF
+  CHECK_EQ(off(), 0x1000);
 }
 
 TEST_CASE("Full on and full off set bit 4 of LEDn_ON_H or LEDn_OFF_H") {
@@ -277,4 +281,39 @@ TEST_CASE("A port without DelayUs still gets the 500 us, timed by bus traffic at
   CHECK_EQ(bus.restarts, 1);
   CHECK_EQ(bus.early_restarts, 0);
   CHECK(bus.usSinceWake() >= 500.0);
+}
+
+// ---- ON and OFF never equal: 0 % and 100 % use the full-OFF / full-ON bits (datasheet 7.3.3, 7.3.4) ----
+
+TEST_CASE("SetDuty 0.0 sets full OFF instead of ON = OFF = 0") {
+  MockPca9685 bus;
+  Driver pwm(&bus, 0x40);
+  REQUIRE(pwm.SetPwm(7, 0, 2000));
+  REQUIRE(pwm.SetDuty(7, 0.0f));
+  CHECK_EQ(offTicks(bus, 7) & 0x1000, 0x1000);    // LED7_OFF_H[4]: constantly low
+  CHECK_EQ(onTicks(bus, 7) & 0x1000, 0);
+  CHECK(onTicks(bus, 7) != offTicks(bus, 7));
+  REQUIRE(pwm.SetDuty(7, 1.0f / 9000.0f));        // rounds to OFF = 0: also full OFF
+  CHECK_EQ(offTicks(bus, 7), 0x1000);
+}
+
+TEST_CASE("SetDuty 1.0 sets full ON, not 4095 of 4096 ticks") {
+  MockPca9685 bus;
+  Driver pwm(&bus, 0x40);
+  REQUIRE(pwm.SetDuty(8, 1.0f));
+  CHECK_EQ(onTicks(bus, 8), 0x1000);              // LED8_ON_H[4]: constantly high
+  CHECK_EQ(offTicks(bus, 8), 0x0000);             // full OFF clear (it would override full ON)
+}
+
+TEST_CASE("SetPwm and SetAllPwm with ON = OFF write full OFF") {
+  MockPca9685 bus;
+  Driver pwm(&bus, 0x40);
+  REQUIRE(pwm.SetPwm(9, 300, 300));
+  CHECK_EQ(onTicks(bus, 9), 0x0000);
+  CHECK_EQ(offTicks(bus, 9), 0x1000);
+  REQUIRE(pwm.SetAllPwm(0, 0));
+  for (int ch = 0; ch < 16; ++ch) {
+    CHECK_EQ(onTicks(bus, ch), 0x0000);
+    CHECK_EQ(offTicks(bus, ch), 0x1000);
+  }
 }

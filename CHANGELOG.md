@@ -26,6 +26,11 @@ code that used the affected API; together they call for a major version bump at 
   write RESTART at once and `SetPwmFreq()` never wrote it, so the channels did not resume after a frequency
   change. The wait uses the port's new optional `DelayUs()` hook, or MODE1 reads when the port has none. The
   "delay 500 µs after `Wake()`" workaround is no longer needed.
+- `SetDuty(ch, 0.0f)` wrote ON = OFF = 0, and `SetPwm()` / `SetAllPwm()` passed equal ticks through, although
+  LEDn_ON and LEDn_OFF must never hold the same count (datasheet 7.3.4). Equal ticks now write the full-OFF bit
+  (`LEDn_OFF_H[4]`), and `SetDuty(ch, 1.0f)` sets the full-ON bit (`LEDn_ON_H[4]`) so that 100 % is constantly
+  high instead of 4095 of 4096 ticks (7.3.3, Table 7). Use of `SetChannelFullOn()` / `SetChannelFullOff()` for
+  the two ends is no longer needed.
 
 ### Added
 
