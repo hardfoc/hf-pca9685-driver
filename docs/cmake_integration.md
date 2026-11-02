@@ -1,12 +1,3 @@
----
-layout: default
-title: "⚙️ CMake Integration"
-description: "How to integrate the PCA9685 driver into your CMake project"
-nav_order: 5
-parent: "📚 Documentation"
-permalink: /docs/cmake_integration/
----
-
 # PCA9685 — CMake Integration Guide
 
 How to consume the PCA9685 driver in your CMake or ESP-IDF project.

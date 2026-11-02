@@ -1,11 +1,3 @@
----
-layout: default
-title: "HardFOC PCA9685 Driver"
-description: "Hardware-agnostic C++ driver for the NXP PCA9685 16-channel 12-bit PWM controller"
-nav_order: 1
-permalink: /
----
-
 # HF-PCA9685 Driver
 **Hardware-agnostic C++ driver for the NXP PCA9685 16-channel 12-bit PWM controller**
 
@@ -14,19 +6,19 @@ permalink: /
 [![CI](https://github.com/hardfoc/hf-pca9685-driver/actions/workflows/esp32-examples-build-ci.yml/badge.svg?branch=main)](https://github.com/hardfoc/hf-pca9685-driver/actions/workflows/esp32-examples-build-ci.yml)
 [![Docs](https://img.shields.io/badge/docs-GitHub%20Pages-blue)](https://hardfoc.github.io/hf-pca9685-driver/)
 
-## 📚 Table of Contents
-1. [Overview](#-overview)
-2. [Features](#-features)
-3. [Quick Start](#-quick-start)
-4. [Installation](#-installation)
-5. [API Reference](#-api-reference)
-6. [Examples](#-examples)
-7. [Documentation](#-documentation)
-8. [References](#-references)
-9. [Contributing](#-contributing)
-10. [License](#-license)
+## Table of Contents
+1. [Overview](#overview)
+2. [Features](#features)
+3. [Quick Start](#quick-start)
+4. [Installation](#installation)
+5. [API Reference](#api-reference)
+6. [Examples](#examples)
+7. [Documentation](#documentation)
+8. [References](#references)
+9. [Contributing](#contributing)
+10. [License](#license)
 
-## 📦 Overview
+## Overview
 
 > **📖 [📚🌐 Live Complete Documentation](https://hardfoc.github.io/hf-pca9685-driver/)** -
 > Interactive guides, examples, and step-by-step tutorials
@@ -44,7 +36,7 @@ for resource-constrained embedded systems.
 
 ![PCA9685 16-channel PWM topology with 50 Hz servo timing example](docs/assets/pca9685-topology.svg)
 
-## ✨ Features
+## Features
 
 - ✅ **16 Independent PWM Channels**: Each with 12-bit resolution (0-4095)
 - ✅ **Configurable Frequency**: 24 Hz to 1526 Hz (typical range)
@@ -59,7 +51,7 @@ for resource-constrained embedded systems.
 - ✅ **Full ON/OFF**: `SetChannelFullOn()` / `SetChannelFullOff()` without PWM
 - ✅ **Retry Logic**: Configurable I2C retry count via `SetRetries()`
 
-## 🚀 Quick Start
+## Quick Start
 
 ```cpp
 #include "pca9685.hpp"
@@ -84,7 +76,7 @@ pwm.SetDuty(0, 0.075f); // Channel 0, 7.5% duty (1.5ms pulse for servo)
 
 For detailed setup, see [Installation](docs/installation.md) and [Quick Start Guide](docs/quickstart.md).
 
-## 🔧 Installation
+## Installation
 
 1. **Clone or copy** the driver files into your project
 2. **Implement the I2C interface** for your platform (see [Platform Integration](docs/platform_integration.md))
@@ -96,7 +88,7 @@ For detailed setup, see [Installation](docs/installation.md) and [Quick Start Gu
 
 For detailed installation instructions, see [docs/installation.md](docs/installation.md).
 
-## 📖 API Reference
+## API Reference
 
 | Method | Description |
 |--------|-------------|
@@ -119,7 +111,7 @@ For detailed installation instructions, see [docs/installation.md](docs/installa
 For complete API documentation with source code links, see
 [docs/api_reference.md](docs/api_reference.md).
 
-## 📊 Examples
+## Examples
 
 - **ESP32**: [examples/esp32](examples/esp32/) — two apps: **pca9685_comprehensive_test** (full driver
   test suite) and **pca9685_servo_demo** (16-channel hobby servo animations). See
@@ -127,11 +119,11 @@ For complete API documentation with source code links, see
   [examples/esp32/docs/](examples/esp32/docs/) for per-app documentation.
 - **Driver examples** (code snippets, any platform): [docs/examples.md](docs/examples.md).
 
-## 📚 Documentation
+## Documentation
 
 For complete documentation, see the [docs directory](docs/index.md).
 
-## 🔗 References
+## References
 
 | Resource | Link |
 |----------|------|
@@ -141,11 +133,11 @@ For complete documentation, see the [docs directory](docs/index.md).
 | Adafruit PCA9685 servo guide | <https://learn.adafruit.com/16-channel-pwm-servo-driver> |
 | C++11 language reference | <https://en.cppreference.com/w/cpp/11> |
 
-## 🤝 Contributing
+## Contributing
 
 Pull requests and suggestions are welcome! Please follow the existing code style and include tests for new features.
 
-## 📄 License
+## License
 
 This project is licensed under the **GNU General Public License v3.0**.
 See the [LICENSE](LICENSE) file for details.

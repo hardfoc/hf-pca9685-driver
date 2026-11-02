@@ -1,18 +1,8 @@
----
-layout: default
-title: "📚 Documentation"
-description: "Complete documentation for the HardFOC PCA9685 Driver"
-nav_order: 2
-parent: "HardFOC PCA9685 Driver"
-permalink: /docs/
-has_children: true
----
-
 # HF-PCA9685 Documentation
 
 Welcome! This directory contains step-by-step guides for installing, building, and using the **HF-PCA9685** library.
 
-## 📚 Documentation Structure
+## Documentation Structure
 
 ### **Getting Started**
 
@@ -42,7 +32,7 @@ Welcome! This directory contains step-by-step guides for installing, building, a
 
 ---
 
-## 🚀 Quick Start Path
+## Quick Start Path
 
 **New to PCA9685?** Follow this recommended path:
 
@@ -54,7 +44,7 @@ Welcome! This directory contains step-by-step guides for installing, building, a
 
 ---
 
-## 💡 Need Help?
+## Need Help?
 
 - **🐛 Found a bug?** Check the [Troubleshooting](troubleshooting.md) guide
 - **❓ Have questions?** Review the [API Reference](api_reference.md)

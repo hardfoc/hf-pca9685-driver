@@ -1,12 +1,3 @@
----
-layout: default
-title: "🛠️ Installation"
-description: "Installation and build instructions for the PCA9685 driver"
-nav_order: 1
-parent: "📚 Documentation"
-permalink: /docs/installation/
----
-
 # Installation
 
 This guide covers how to obtain, build, and verify the PCA9685 driver library.

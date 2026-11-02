@@ -1,12 +1,3 @@
----
-layout: default
-title: "🔌 Hardware Setup"
-description: "Hardware wiring and connection guide for the PCA9685"
-nav_order: 3
-parent: "📚 Documentation"
-permalink: /docs/hardware_setup/
----
-
 # Hardware Setup
 
 ![PCA9685 16-channel PWM topology with 50 Hz servo timing example](assets/pca9685-topology.svg)

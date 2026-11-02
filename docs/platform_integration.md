@@ -1,12 +1,3 @@
----
-layout: default
-title: "🔧 Platform Integration"
-description: "Implement the CRTP I2C interface for your platform"
-nav_order: 4
-parent: "📚 Documentation"
-permalink: /docs/platform_integration/
----
-
 # Platform Integration Guide
 
 This guide explains how to implement the hardware abstraction interface for the PCA9685 driver on your platform.
@@ -248,7 +239,7 @@ public:
 
 ## Common Pitfalls
 
-### ❌ Don't Use Virtual Functions
+### Don't Use Virtual Functions
 
 ```cpp
 // WRONG - defeats the purpose of CRTP
@@ -260,7 +251,7 @@ public:
 };
 ```
 
-### ✅ Correct CRTP Implementation
+### Correct CRTP Implementation
 
 ```cpp
 // CORRECT - no virtual keyword, PascalCase, noexcept
@@ -272,7 +263,7 @@ public:
 };
 ```
 
-### ❌ Don't Forget the Template Parameter
+### Don't Forget the Template Parameter
 
 ```cpp
 // WRONG - missing template parameter
@@ -281,7 +272,7 @@ class MyI2c : public pca9685::I2cInterface {  // ❌ Compiler error
 };
 ```
 
-### ✅ Correct Template Parameter
+### Correct Template Parameter
 
 ```cpp
 // CORRECT - pass your class as template parameter
@@ -290,7 +281,7 @@ class MyI2c : public pca9685::I2cInterface<MyI2c> {  // ✅
 };
 ```
 
-### ❌ Address Format Confusion
+### Address Format Confusion
 
 The driver uses **7-bit I2C addresses**. Some platforms use 8-bit addresses (7-bit << 1):
 

@@ -1,12 +1,3 @@
----
-layout: default
-title: "⚙️ Configuration"
-description: "Configuration options for the PCA9685 driver"
-nav_order: 5
-parent: "📚 Documentation"
-permalink: /docs/configuration/
----
-
 # Configuration
 
 This guide covers all configuration options available for the PCA9685 driver.
