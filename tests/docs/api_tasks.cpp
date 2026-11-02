@@ -12,7 +12,6 @@
 using Driver = pca9685::PCA9685<MyI2c>;
 
 void platform_delay_ms(uint32_t ms) noexcept;  // your SDK's delay
-void platform_delay_us(uint32_t us) noexcept;
 
 bool init(MyI2c& bus) {
   // --8<-- [start:init]
@@ -82,12 +81,8 @@ bool power(Driver& pwm) {
     return false;
   }
   // ... low-power period ...
-  if (!pwm.Wake()) {                              // MODE1.SLEEP = 0, then RESTART if it was set
-    return false;
-  }
-  platform_delay_us(500);                         // oscillator start-up, 500 us max (datasheet)
+  return pwm.Wake();                              // SLEEP = 0, 500 us start-up, then RESTART
   // --8<-- [end:power]
-  return true;
 }
 
 void errors(Driver& pwm) {

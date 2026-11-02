@@ -24,10 +24,15 @@ nothing to allocate.
 | `EnsureInitialized()` | Bring the bus up on the first call; return `true` at once afterwards. `false` stops the driver from starting |
 | `Write(addr, reg, data, len)` | One transaction: START, `addr` + W, `reg`, `len` bytes, STOP. `true` only if every byte was acknowledged |
 | `Read(addr, reg, data, len)` | One transaction: START, `addr` + W, `reg`, repeated START, `addr` + R, `len` bytes, STOP |
+| `DelayUs(us)` | Optional, recommended: wait at least `us` microseconds. The driver calls it with 500 after it clears MODE1.SLEEP, for the oscillator start-up time (datasheet Table 5, note 2) |
 | `GpioSet(pin, signal)` | Optional; the driver never calls it (see below) |
 
 `addr` is the 7-bit address; shift it left yourself if your SDK wants the 8-bit form. The driver writes at most
 four data bytes per call and reads one.
+
+The optional methods are found at compile time: a port without them still builds. Without `DelayUs()` the driver
+covers the 500 µs start-up with 13 one-byte reads of MODE1, enough at any bus clock up to 1 MHz, so give your port
+a `DelayUs()` if its `Read()` can return without running a bus transaction.
 
 ## I2C port
 

@@ -69,8 +69,11 @@ sequenceDiagram
     H->>C: write MODE1 = old | SLEEP (RESTART bit cleared)
     Note over C: oscillator off, PRE_SCALE writable
     H->>C: write PRE_SCALE = 121
-    H->>C: write MODE1 = old
+    H->>C: write MODE1 = old (SLEEP = 0)
     Note over C: oscillator restarts, up to 500 us
+    Note over H: DelayUs(500)
+    H->>C: write MODE1 = old | RESTART
+    Note over C: running channels resume
 ```
 
 ## Output stage
@@ -111,8 +114,8 @@ ground are shared with the PCA9685.
 
 | Event | Time | Driver behaviour |
 | --- | --- | --- |
-| Oscillator start after MODE1.SLEEP is cleared | 500 µs max | Not waited for: delay yourself before relying on output timing (Table 5, note 2) |
-| SLEEP low before writing RESTART | 500 µs min | `Wake()` writes RESTART at once (section 7.3.1.1, p. 15) |
+| Oscillator start after MODE1.SLEEP is cleared | 500 µs max | `Reset()`, `Wake()` and `SetPwmFreq()` wait 500 µs before they return (Table 5, note 2) |
+| SLEEP low before writing RESTART | 500 µs min | `Wake()` and `SetPwmFreq()` write RESTART only after the 500 µs wait (section 7.3.1.1, p. 15) |
 | OE to output | 40 ns to 60 ns | n/a (Table 15) |
 
 ## Breakout boards

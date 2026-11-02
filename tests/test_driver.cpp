@@ -210,3 +210,71 @@ TEST_CASE("MODE1.AI stays set through SetPwmFreq, Sleep, Wake and Reset") {
   REQUIRE(pwm.SetPwm(1, 10, 20));
   CHECK_EQ(offTicks(bus, 1), 20);
 }
+
+// ---- Oscillator start-up: 500 us after SLEEP is cleared (datasheet 7.3.1 note 2, 7.3.1.1) ----
+
+TEST_CASE("Wake waits 500 us before RESTART and resumes the running channels") {
+  MockPca9685 bus;
+  Driver pwm(&bus, 0x40);
+  REQUIRE(pwm.SetPwm(0, 0, 2048));
+  REQUIRE(pwm.Sleep());
+  CHECK_EQ(bus.reg(MockPca9685::MODE1) & 0x80, 0x80); // the chip set RESTART on the way into sleep
+  bus.delays_us.clear();
+  REQUIRE(pwm.Wake());
+  CHECK_EQ(bus.restarts, 1);
+  CHECK_EQ(bus.early_restarts, 0);
+  CHECK_EQ(bus.reg(MockPca9685::MODE1) & 0x90, 0x00); // awake, RESTART cleared
+  CHECK(bus.usSinceWake() >= 500.0);
+  REQUIRE(bus.delays_us.size() == 1U);
+  CHECK_EQ(bus.delays_us[0], 500U);
+}
+
+TEST_CASE("Wake waits for the oscillator even when RESTART is not set") {
+  MockPca9685 bus;
+  Driver pwm(&bus, 0x40);
+  REQUIRE(pwm.Sleep());                           // all channels full off: no RESTART
+  REQUIRE(pwm.Wake());
+  CHECK(bus.usSinceWake() >= 500.0);
+  CHECK_EQ(bus.restarts, 0);
+}
+
+TEST_CASE("SetPwmFreq restarts the running channels 500 us after waking") {
+  MockPca9685 bus;
+  Driver pwm(&bus, 0x40);
+  REQUIRE(pwm.SetPwm(4, 0, 1000));
+  REQUIRE(pwm.SetPwmFreq(50.0f));
+  CHECK_EQ(bus.reg(MockPca9685::PRE_SCALE), 121);
+  CHECK_EQ(bus.restarts, 1);
+  CHECK_EQ(bus.early_restarts, 0);
+  CHECK_EQ(bus.reg(MockPca9685::MODE1) & 0xB0, 0x20); // awake, AI, RESTART cleared
+  CHECK(bus.usSinceWake() >= 500.0);
+}
+
+TEST_CASE("SetPwmFreq leaves a sleeping chip asleep") {
+  MockPca9685 bus;
+  Driver pwm(&bus, 0x40);
+  REQUIRE(pwm.Sleep());
+  REQUIRE(pwm.SetPwmFreq(100.0f));
+  CHECK_EQ(bus.reg(MockPca9685::MODE1) & 0x10, 0x10);
+  CHECK_EQ(bus.reg(MockPca9685::PRE_SCALE), 60);
+}
+
+TEST_CASE("EnsureInitialized returns after the oscillator has started") {
+  MockPca9685 bus;
+  Driver pwm(&bus, 0x40);
+  REQUIRE(pwm.EnsureInitialized());
+  CHECK(bus.usSinceWake() >= 500.0);
+}
+
+TEST_CASE("A port without DelayUs still gets the 500 us, timed by bus traffic at 1 MHz") {
+  MockPca9685NoDelay bus;                         // model clock: Fm+, the fastest bus the chip allows
+  pca9685::PCA9685<MockPca9685NoDelay> pwm(&bus, 0x40);
+  REQUIRE(pwm.EnsureInitialized());
+  CHECK(bus.usSinceWake() >= 500.0);
+  REQUIRE(pwm.SetPwm(0, 0, 2048));
+  REQUIRE(pwm.Sleep());
+  REQUIRE(pwm.Wake());
+  CHECK_EQ(bus.restarts, 1);
+  CHECK_EQ(bus.early_restarts, 0);
+  CHECK(bus.usSinceWake() >= 500.0);
+}

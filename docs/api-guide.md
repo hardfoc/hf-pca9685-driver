@@ -83,9 +83,10 @@ has the MODE2 bits.
 ```
 
 `Sleep()` sets MODE1.SLEEP: the oscillator stops, the outputs stop and the chip draws 2.2 µA typical. The channel
-registers keep their values. `Wake()` clears SLEEP and, when the chip set RESTART on the way into sleep, writes
-RESTART to resume every channel where it was. The oscillator needs up to 500 µs to start; wait that long before
-you rely on output timing.
+registers keep their values. `Wake()` follows the restart procedure of section 7.3.1.1: it clears SLEEP, waits
+the 500 µs oscillator start-up time and then, when the chip set RESTART on the way into sleep, writes RESTART to
+resume every channel where it was. When `Wake()` returns, output timing is valid again. The wait goes through your
+port's optional `DelayUs()` ([Porting](porting.md)).
 
 ## Handle errors
 

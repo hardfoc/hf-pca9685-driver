@@ -21,6 +21,11 @@ code that used the affected API; together they call for a major version bump at 
   Without AI the register pointer does not advance, so the four-byte writes of `SetPwm()`, `SetDuty()`,
   `SetAllPwm()`, `SetChannelFullOn()` and `SetChannelFullOff()` only reached `LEDn_ON_L` (datasheet 7.3.1,
   Table 5). The auto-increment workaround is no longer needed.
+- `Wake()`, `SetPwmFreq()` and `Reset()` now wait the 500 µs oscillator start-up time after clearing
+  MODE1.SLEEP, and write RESTART only after it (datasheet Table 5 note 2, section 7.3.1.1). `Wake()` used to
+  write RESTART at once and `SetPwmFreq()` never wrote it, so the channels did not resume after a frequency
+  change. The wait uses the port's new optional `DelayUs()` hook, or MODE1 reads when the port has none. The
+  "delay 500 µs after `Wake()`" workaround is no longer needed.
 
 ### Added
 

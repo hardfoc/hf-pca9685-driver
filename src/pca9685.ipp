@@ -47,6 +47,7 @@ bool pca9685::PCA9685<I2cType>::Reset() noexcept {
     initialized_ = false;
     return false;
   }
+  waitOscillatorStartup(); // SLEEP may have been 1 (it is at power-up): 500 us start-up
   initialized_ = true;
   last_error_ = Error::None;
   return true;
@@ -74,8 +75,13 @@ bool pca9685::PCA9685<I2cType>::SetPwmFreq(float freq_hz) noexcept {
   if (!writeReg(static_cast<uint8_t>(Register::PRE_SCALE), prescale)) {
     return false;
   }
-  if (!writeMode1(old_mode)) {
-    return false;
+  if ((old_mode & MODE1_SLEEP_) == 0) {
+    // Was running: wake, give the oscillator 500 us, then write RESTART so that the channels
+    // that were running resume (datasheet 7.3.1.1 steps 2 and 3). A 1 written to RESTART when it
+    // reads 0 has no effect (Table 5), so it is written unconditionally.
+    if (!restartAfterSleep(old_mode, true)) {
+      return false;
+    }
   }
   last_error_ = Error::None;
   return true;
@@ -175,15 +181,12 @@ bool pca9685::PCA9685<I2cType>::Wake() noexcept {
   if (!readReg(static_cast<uint8_t>(Register::MODE1), mode1)) {
     return false;
   }
-  const auto awake = static_cast<uint8_t>(mode1 & ~MODE1_SLEEP_); // Clear SLEEP
-  if (!writeMode1(awake)) {
-    return false;
-  }
-  // If RESTART bit was set, set it again to restart PWM channels
-  if ((mode1 & MODE1_RESTART_) != 0) {
-    // Oscillator needs ~500us to stabilize; caller should delay if needed
-    if (!writeReg(static_cast<uint8_t>(Register::MODE1),
-                  static_cast<uint8_t>(awake | MODE1_AI_ | MODE1_RESTART_))) {
+  const bool asleep = (mode1 & MODE1_SLEEP_) != 0;
+  const bool restart = (mode1 & MODE1_RESTART_) != 0;
+  if (asleep || restart) {
+    // Datasheet 7.3.1.1: clear SLEEP, allow 500 us for the oscillator, then write 1 to RESTART
+    // if it read 1, so that the channels that were running resume.
+    if (!restartAfterSleep(mode1, restart)) {
       return false;
     }
   }
@@ -332,6 +335,36 @@ bool pca9685::PCA9685<I2cType>::writeMode1(uint8_t value) noexcept {
   // the PWM channels (datasheet 7.3.1, Table 5 and 7.3.1.1).
   const auto mode1 = static_cast<uint8_t>((value & ~MODE1_RESTART_) | MODE1_AI_);
   return writeReg(static_cast<uint8_t>(Register::MODE1), mode1);
+}
+
+template <typename I2cType>
+bool pca9685::PCA9685<I2cType>::restartAfterSleep(uint8_t mode1, bool restart) noexcept {
+  const auto awake = static_cast<uint8_t>(mode1 & ~MODE1_SLEEP_);
+  if (!writeMode1(awake)) {
+    return false;
+  }
+  waitOscillatorStartup(); // SLEEP must be 0 for 500 us before RESTART is written (7.3.1.1)
+  if (!restart) {
+    return true;
+  }
+  return writeReg(static_cast<uint8_t>(Register::MODE1),
+                  static_cast<uint8_t>((awake & ~MODE1_RESTART_) | MODE1_AI_ | MODE1_RESTART_));
+}
+
+template <typename I2cType>
+void pca9685::PCA9685<I2cType>::waitOscillatorStartup() noexcept {
+  if constexpr (requires(I2cType& bus, uint32_t us) { bus.DelayUs(us); }) {
+    i2c_->DelayUs(OSC_STARTUP_US_);
+  } else {
+    // The port has no DelayUs(): time the wait with bus traffic instead. A one-byte register read
+    // is at least 39 SCL periods (START, 4 x 9 bits, repeated START, STOP), 39 us at the chip's
+    // fastest clock of 1 MHz (Table 15), so 13 reads of MODE1 take at least 507 us. MODE1 is not a
+    // PWM control register, so reading it inside the start-up window is allowed (Table 5, note 2).
+    uint8_t scratch = 0;
+    for (uint32_t i = 0; i < OSC_STARTUP_FALLBACK_READS_; ++i) {
+      (void)i2c_->Read(addr_, static_cast<uint8_t>(Register::MODE1), &scratch, 1);
+    }
+  }
 }
 
 template <typename I2cType>
