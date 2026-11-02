@@ -21,6 +21,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <utility>
 #include <vector>
 
 struct I2cTransaction {
@@ -105,6 +106,14 @@ public:
     now_us += us;
   }
 
+  /// OE pin hook: records each call; `oe_low` is the pin level the port would drive (active low).
+  void GpioSet(pca9685::CtrlPin pin, pca9685::GpioSignal signal) noexcept {
+    gpio_calls.push_back({pin, signal});
+    if (pin == pca9685::CtrlPin::OE) {
+      oe_low = (signal == pca9685::GpioSignal::ACTIVE);
+    }
+  }
+
   uint8_t reg(uint8_t r) const noexcept { return regs_[r]; }
   void setReg(uint8_t r, uint8_t v) noexcept { regs_[r] = v; }
 
@@ -113,6 +122,8 @@ public:
 
   std::vector<I2cTransaction> log;
   std::vector<uint32_t> delays_us;
+  std::vector<std::pair<pca9685::CtrlPin, pca9685::GpioSignal>> gpio_calls;
+  bool oe_low = false;                            // OE floats high (no pull-up) until driven
   int fail_next = 0;
   bool init_ok = true;
   int init_calls = 0;

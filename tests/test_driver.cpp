@@ -317,3 +317,34 @@ TEST_CASE("SetPwm and SetAllPwm with ON = OFF write full OFF") {
     CHECK_EQ(offTicks(bus, ch), 0x1000);
   }
 }
+
+// ---- OE pin: active low, driven through the port's GpioSet() (datasheet 7.4) ----
+
+TEST_CASE("SetOutputEnable drives OE through the port: enable = ACTIVE = low") {
+  MockPca9685 bus;
+  Driver pwm(&bus, 0x40);
+  REQUIRE(pwm.SetOutputEnable(true));
+  REQUIRE(bus.gpio_calls.size() == 1U);
+  CHECK(bus.gpio_calls[0].first == pca9685::CtrlPin::OE);
+  CHECK(bus.gpio_calls[0].second == pca9685::GpioSignal::ACTIVE);
+  CHECK(bus.oe_low);
+  REQUIRE(pwm.SetOutputEnable(false));
+  CHECK(bus.gpio_calls.back().second == pca9685::GpioSignal::INACTIVE);
+  CHECK(!bus.oe_low);
+  CHECK(bus.log.empty());                         // no I2C traffic, no initialisation needed
+}
+
+TEST_CASE("GpioSetActive and GpioSetInactive reach the port's GpioSet") {
+  MockPca9685 bus;
+  bus.GpioSetActive(pca9685::CtrlPin::OE);
+  CHECK(bus.oe_low);
+  bus.GpioSetInactive(pca9685::CtrlPin::OE);
+  CHECK(!bus.oe_low);
+  CHECK_EQ(bus.gpio_calls.size(), 2U);
+}
+
+TEST_CASE("SetOutputEnable without a bus fails") {
+  Driver pwm(nullptr, 0x40);
+  CHECK(!pwm.SetOutputEnable(true));
+  CHECK(pwm.HasError(Driver::Error::InvalidParam));
+}

@@ -75,6 +75,16 @@ bool configure_outputs(Driver& pwm) {
   // --8<-- [end:output-config]
 }
 
+bool blank_outputs(Driver& pwm) {
+  // --8<-- [start:output-enable]
+  pwm.SetOutputEnable(false);                     // OE high: all outputs blanked (MODE2.OUTNE state)
+  if (!pwm.SetAllPwm(0, 2048)) {                  // program the channels while blanked
+    return false;
+  }
+  return pwm.SetOutputEnable(true);               // OE low: outputs follow their registers
+  // --8<-- [end:output-enable]
+}
+
 bool power(Driver& pwm) {
   // --8<-- [start:power]
   if (!pwm.Sleep()) {                             // MODE1.SLEEP = 1: oscillator off, outputs stop

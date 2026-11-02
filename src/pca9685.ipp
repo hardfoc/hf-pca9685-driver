@@ -218,6 +218,17 @@ bool pca9685::PCA9685<I2cType>::SetOutputDriverMode(bool totem_pole) noexcept {
                    totem_pole ? static_cast<uint8_t>(0x04U) : static_cast<uint8_t>(0x00U));
 }
 
+template <typename I2cType>
+bool pca9685::PCA9685<I2cType>::SetOutputEnable(bool enable) noexcept {
+  if (!i2c_) {
+    setError(Error::InvalidParam);
+    return false;
+  }
+  // OE is active LOW (datasheet 7.4): ACTIVE = outputs enabled = pin low; the port maps the level.
+  i2c_->GpioSet(CtrlPin::OE, enable ? GpioSignal::ACTIVE : GpioSignal::INACTIVE);
+  return true;
+}
+
 // ---- Channel On/Off ----
 
 template <typename I2cType>

@@ -18,7 +18,7 @@ Every call that touches the chip is `noexcept` and returns `bool`.
 | Frequency | `SetPwmFreq(float hz)`, `GetPrescale(uint8_t&)` |
 | One channel | `SetDuty(ch, duty)`, `SetPwm(ch, on, off)`, `SetChannelFullOn(ch)`, `SetChannelFullOff(ch)` |
 | All channels | `SetAllPwm(on, off)` |
-| Output stage | `SetOutputDriverMode(bool totem_pole)`, `SetOutputInvert(bool invert)` |
+| Output stage | `SetOutputDriverMode(bool totem_pole)`, `SetOutputInvert(bool invert)`, `SetOutputEnable(bool enable)` |
 | Power | `Sleep()`, `Wake()` |
 | Errors | `GetErrorFlags()`, `HasError(e)`, `HasAnyError()`, `ClearError(e)`, `ClearErrorFlags(mask)`, `GetLastError()` |
 | Bus robustness | `SetRetries(int)`, `SetRetryDelay(void (*)())` |
@@ -75,6 +75,13 @@ For a servo, compute ticks from the pulse width:
 The power-up default is totem pole, not inverted: right for servo signals and logic inputs. Use open drain for
 LEDs with built-in Zener diodes, and inversion for LEDs wired from VDD to the pin. [Hardware](hardware.md#output-stage)
 has the MODE2 bits.
+
+With OE wired to a GPIO, `SetOutputEnable()` blanks or enables all 16 outputs at once through your port's
+`GpioSet()` ([Porting](porting.md#the-oe-pin)); it sends nothing on the bus:
+
+```cpp
+--8<-- "tests/docs/api_tasks.cpp:output-enable"
+```
 
 ## Sleep and wake
 

@@ -91,8 +91,9 @@ Totem pole sinks 25 mA and sources 10 mA at 5 V; open drain sinks 25 mA. LEDs wi
 driven in open-drain mode (Table 6, note 1). For a servo signal or a logic-level gate driver input use totem
 pole, `INVRT = 0`.
 
-OE is active low. Low: outputs follow their registers. High: outputs take the OUTNE state, by default low. The
-driver does not drive OE; tie it low or control it from a GPIO yourself.
+OE is active low (section 7.4, p. 27). Low: outputs follow their registers. High: outputs take the OUTNE state,
+by default low. Tie it low, or wire it to a GPIO and drive it with `SetOutputEnable()` through your port's
+`GpioSet()` ([Porting](porting.md#the-oe-pin)).
 
 ## Power
 

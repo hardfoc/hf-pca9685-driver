@@ -31,7 +31,13 @@ code that used the affected API; together they call for a major version bump at 
   (`LEDn_OFF_H[4]`), and `SetDuty(ch, 1.0f)` sets the full-ON bit (`LEDn_ON_H[4]`) so that 100 % is constantly
   high instead of 4095 of 4096 ticks (7.3.3, Table 7). Use of `SetChannelFullOn()` / `SetChannelFullOff()` for
   the two ends is no longer needed.
+- `I2cInterface::GpioSetActive()` and `GpioSetInactive()` called the base class's do-nothing `GpioSet()`, never
+  the port's, so the OE hooks did nothing. They now dispatch to the port's `GpioSet()` (CRTP).
 
 ### Added
 
+- `SetOutputEnable(bool enable)`: drives the active-low OE pin (datasheet 7.4) through the port's optional
+  `GpioSet(CtrlPin::OE, ...)`, ACTIVE to enable the outputs (pin low) and INACTIVE to blank them (pin high).
+  Ports without `GpioSet()` still compile and get the do-nothing default.
+- Optional port hook `DelayUs(uint32_t us)`, used for the 500 µs oscillator start-up (see Fixed).
 - Host unit tests (`HF_PCA9685_BUILD_TESTS`) that run the driver against a model of the PCA9685 registers.

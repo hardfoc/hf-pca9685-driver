@@ -315,6 +315,23 @@ public:
    */
   bool SetOutputDriverMode(bool totem_pole) noexcept;
 
+  /**
+   * @brief Enable or blank all 16 outputs with the OE pin.
+   *
+   * OE is active LOW (datasheet 7.4, Table 11): with OE low the outputs follow their LEDn
+   * registers, with OE high they take the MODE2.OUTNE state (low by default). This calls the
+   * port's GpioSet(CtrlPin::OE, ACTIVE) to enable and GpioSet(CtrlPin::OE, INACTIVE) to blank;
+   * the port maps ACTIVE to a low level. No I2C traffic, and the chip need not be initialized.
+   * A port that does not declare GpioSet() inherits the no-op default, for OE tied low.
+   *
+   * The driver never drives OE on its own, so a port can hold the outputs blanked from power-up
+   * until the channels are programmed.
+   *
+   * @param enable true to enable the outputs (OE low), false to blank them (OE high).
+   * @return true if the request was passed to the port; false if no bus was given.
+   */
+  bool SetOutputEnable(bool enable) noexcept;
+
   // ---- Channel On/Off ----
 
   /**

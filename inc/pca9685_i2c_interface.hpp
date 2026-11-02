@@ -63,6 +63,8 @@ enum class GpioSignal : uint8_t {
  * @endcode
  *
  * Optional hooks, detected at compile time (a port that does not declare them still compiles):
+ * - `void GpioSet(CtrlPin pin, GpioSignal signal) noexcept`: drive the OE pin (see GpioSet()
+ *   below). Called by PCA9685::SetOutputEnable(); the default does nothing.
  * - `void DelayUs(uint32_t us) noexcept`: busy-wait or sleep for at least `us` microseconds. The
  *   driver calls it with 500 after clearing MODE1.SLEEP (Reset(), Wake(), SetPwmFreq()), for the
  *   oscillator start-up time of datasheet Table 5 note 2 and section 7.3.1.1. Without it the
@@ -122,11 +124,16 @@ public:
   /**
    * @brief Set a control pin to the specified signal state.
    *
+   * For CtrlPin::OE, ACTIVE means outputs enabled, which is a LOW level on the pin; INACTIVE
+   * means outputs blanked to the MODE2.OUTNE state, a HIGH level (datasheet 7.4, Table 11). The
+   * port does the polarity mapping.
+   *
    * @param[in] pin     Which control pin to drive (OE).
    * @param[in] signal  ACTIVE to assert the pin function, INACTIVE to deassert.
    *
-   * @note The default implementation is a no-op. Override in derived class
-   *       if the OE pin is wired and controllable.
+   * @note The default implementation is a no-op, for boards where OE is tied low. Declare the
+   *       same function in the derived class if the OE pin is wired to a GPIO: the driver's
+   *       SetOutputEnable() and the helpers below call the derived version.
    */
   void GpioSet(CtrlPin pin, GpioSignal signal) noexcept {
     (void)pin;
@@ -137,13 +144,17 @@ public:
    * @brief Assert a control pin (set to ACTIVE).
    * @param[in] pin  Which control pin to assert.
    */
-  void GpioSetActive(CtrlPin pin) noexcept { GpioSet(pin, GpioSignal::ACTIVE); }
+  void GpioSetActive(CtrlPin pin) noexcept {
+    static_cast<Derived*>(this)->GpioSet(pin, GpioSignal::ACTIVE);
+  }
 
   /**
    * @brief Deassert a control pin (set to INACTIVE).
    * @param[in] pin  Which control pin to deassert.
    */
-  void GpioSetInactive(CtrlPin pin) noexcept { GpioSet(pin, GpioSignal::INACTIVE); }
+  void GpioSetInactive(CtrlPin pin) noexcept {
+    static_cast<Derived*>(this)->GpioSet(pin, GpioSignal::INACTIVE);
+  }
 
   /// @}
 
