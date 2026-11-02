@@ -69,6 +69,15 @@ if(HF_PCA9685_ENABLE_WARNINGS)
 endif()
 
 #===============================================================================
+# Optional: host unit tests and the compiled documentation snippets (tests/)
+#===============================================================================
+option(HF_PCA9685_BUILD_TESTS "Build the host unit tests in tests/" OFF)
+if(HF_PCA9685_BUILD_TESTS)
+    enable_testing()
+    add_subdirectory(tests)
+endif()
+
+#===============================================================================
 # Install and export support (for find_package usage)
 #===============================================================================
 include(GNUInstallDirs)
