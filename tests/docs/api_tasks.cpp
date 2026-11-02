@@ -21,7 +21,7 @@ bool init(MyI2c& bus) {
   pwm.SetRetries(2);                              // up to 3 attempts per register access
   pwm.SetRetryDelay([] { platform_delay_ms(1); }); // between attempts: let the bus recover
 
-  if (!pwm.EnsureInitialized()) {                 // bus up, then MODE1 = 0x00 (oscillator on)
+  if (!pwm.EnsureInitialized()) {                 // bus up, then MODE1 = 0x20 (oscillator on, AI)
     return false;
   }
   // --8<-- [end:init]
@@ -102,14 +102,4 @@ void errors(Driver& pwm) {
     pwm.ClearErrorFlags();                        // flags accumulate until you clear them
   }
   // --8<-- [end:errors]
-}
-
-bool enable_auto_increment(MyI2c& bus, Driver& pwm) {
-  // --8<-- [start:auto-increment]
-  if (!pwm.EnsureInitialized()) {                 // leaves MODE1 = 0x00
-    return false;
-  }
-  const uint8_t mode1 = 0x20;                     // MODE1.AI = 1, oscillator on, ALLCALL off
-  return bus.Write(0x40, 0x00, &mode1, 1);        // once, before the first channel write
-  // --8<-- [end:auto-increment]
 }

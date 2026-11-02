@@ -49,8 +49,8 @@ The port is the only platform code. It brings the bus up and moves register byte
 
 What each step does:
 
-1. `EnsureInitialized()` calls your port's `EnsureInitialized()`, then writes MODE1 = `0x00`, which starts the
-   oscillator. Every other call runs it for you if you skip it.
+1. `EnsureInitialized()` calls your port's `EnsureInitialized()`, then writes MODE1 = `0x20`, which starts the
+   oscillator and turns on register auto-increment. Every other call runs it for you if you skip it.
 2. `SetPwmFreq(50.0f)` writes PRE_SCALE = 121 (the chip only accepts it while asleep; the driver handles that),
    giving a 20 ms frame.
 3. `SetDuty(0, 0.075f)` sets channel 0 high for 7.5 % of each frame: 1.5 ms, the centre of a typical servo.
@@ -63,7 +63,7 @@ This example is built by the host CI, so it compiles against the current headers
 | --- | --- |
 | `EnsureInitialized()` returns `false` | Pull-ups on SCL and SDA, VDD, the address (A0 to A5) |
 | Calls succeed, output stays low | OE must be low; the chip is not asleep (`Wake()`) |
-| Output wrong on a channel | Auto-increment ([Troubleshooting](troubleshooting.md#channel-outputs-are-wrong-or-do-not-change)) |
+| Output wrong on a channel | Your port's transfers ([Troubleshooting](troubleshooting.md#channel-outputs-are-wrong-or-do-not-change)) |
 | Servo jitters or sits off centre | Frequency and pulse width ([PWM timing](pwm-timing.md#servo-pulses)) |
 
 ## Next

@@ -113,7 +113,10 @@ public:
   /**
    * @brief Reset the device to its power-on default state.
    *
-   * Ensures the I2C bus is initialized, then writes MODE1 register to 0x00.
+   * Ensures the I2C bus is initialized, then writes MODE1 = 0x20: oscillator on (SLEEP = 0) and
+   * register auto-increment on (AI = 1), which the driver's four-byte channel writes need
+   * (datasheet 7.3.1, Table 5). Sub-address and All Call responses are turned off. The channel
+   * registers, MODE2 and PRE_SCALE are not touched.
    *
    * @return true on success; false on I2C failure.
    */
@@ -355,6 +358,10 @@ public:
   }
 
 private:
+  static constexpr uint8_t MODE1_RESTART_ = 0x80; ///< MODE1 bit 7: RESTART (Table 5)
+  static constexpr uint8_t MODE1_AI_ = 0x20;      ///< MODE1 bit 5: register auto-increment
+  static constexpr uint8_t MODE1_SLEEP_ = 0x10;   ///< MODE1 bit 4: SLEEP (oscillator off)
+
   I2cType* i2c_;
   uint8_t addr_;
   Error last_error_{Error::None};
@@ -384,6 +391,13 @@ private:
   /** @brief Compute prescale value for given frequency. @param freq_hz Frequency in Hz. @return
    * Prescale value (0–255). */
   [[nodiscard]] uint8_t calcPrescale(float freq_hz) const noexcept;
+
+  /**
+   * @brief Write MODE1 with AI forced to 1 and RESTART forced to 0.
+   * @param value New MODE1 value (the AI and RESTART bits are overridden).
+   * @return true on success.
+   */
+  bool writeMode1(uint8_t value) noexcept;
 
   /**
    * @brief Read-modify-write a single register.

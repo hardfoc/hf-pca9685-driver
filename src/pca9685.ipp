@@ -41,8 +41,9 @@ bool pca9685::PCA9685<I2cType>::Reset() noexcept {
     return false;
   }
 
-  uint8_t mode1 = 0x00; // Reset value
-  if (!writeReg(static_cast<uint8_t>(Register::MODE1), mode1)) {
+  // MODE1 = AI only: oscillator on (SLEEP = 0), register auto-increment on (datasheet 7.3.1,
+  // Table 5) so that the four-byte LEDn / ALL_LED frames reach all four registers.
+  if (!writeMode1(0x00)) {
     initialized_ = false;
     return false;
   }
@@ -66,14 +67,14 @@ bool pca9685::PCA9685<I2cType>::SetPwmFreq(float freq_hz) noexcept {
   if (!readReg(static_cast<uint8_t>(Register::MODE1), old_mode)) {
     return false;
   }
-  uint8_t sleep = (old_mode & 0x7F) | 0x10; // sleep
-  if (!writeReg(static_cast<uint8_t>(Register::MODE1), sleep)) {
+  // PRE_SCALE accepts writes only while MODE1.SLEEP = 1 (Table 4, note 1)
+  if (!writeMode1(static_cast<uint8_t>(old_mode | MODE1_SLEEP_))) {
     return false;
   }
   if (!writeReg(static_cast<uint8_t>(Register::PRE_SCALE), prescale)) {
     return false;
   }
-  if (!writeReg(static_cast<uint8_t>(Register::MODE1), old_mode)) {
+  if (!writeMode1(old_mode)) {
     return false;
   }
   last_error_ = Error::None;
@@ -153,7 +154,15 @@ bool pca9685::PCA9685<I2cType>::Sleep() noexcept {
     setError(Error::NotInitialized);
     return false;
   }
-  return modifyReg(static_cast<uint8_t>(Register::MODE1), 0x10, 0x10); // Set SLEEP bit
+  uint8_t mode1 = 0;
+  if (!readReg(static_cast<uint8_t>(Register::MODE1), mode1)) {
+    return false;
+  }
+  if (!writeMode1(static_cast<uint8_t>(mode1 | MODE1_SLEEP_))) {
+    return false;
+  }
+  last_error_ = Error::None;
+  return true;
 }
 
 template <typename I2cType>
@@ -166,14 +175,15 @@ bool pca9685::PCA9685<I2cType>::Wake() noexcept {
   if (!readReg(static_cast<uint8_t>(Register::MODE1), mode1)) {
     return false;
   }
-  uint8_t new_mode1 = mode1 & static_cast<uint8_t>(~0x10U); // Clear SLEEP
-  if (!writeReg(static_cast<uint8_t>(Register::MODE1), new_mode1)) {
+  const auto awake = static_cast<uint8_t>(mode1 & ~MODE1_SLEEP_); // Clear SLEEP
+  if (!writeMode1(awake)) {
     return false;
   }
   // If RESTART bit was set, set it again to restart PWM channels
-  if ((mode1 & 0x80U) != 0) {
+  if ((mode1 & MODE1_RESTART_) != 0) {
     // Oscillator needs ~500us to stabilize; caller should delay if needed
-    if (!writeReg(static_cast<uint8_t>(Register::MODE1), static_cast<uint8_t>(new_mode1 | 0x80U))) {
+    if (!writeReg(static_cast<uint8_t>(Register::MODE1),
+                  static_cast<uint8_t>(awake | MODE1_AI_ | MODE1_RESTART_))) {
       return false;
     }
   }
@@ -314,6 +324,14 @@ bool pca9685::PCA9685<I2cType>::readRegBlock(uint8_t reg, uint8_t* data, size_t 
   }
   setError(Error::I2cRead);
   return false;
+}
+
+template <typename I2cType>
+bool pca9685::PCA9685<I2cType>::writeMode1(uint8_t value) noexcept {
+  // Keep AI set on every MODE1 write, and never write 1 to RESTART by accident: a 1 there restarts
+  // the PWM channels (datasheet 7.3.1, Table 5 and 7.3.1.1).
+  const auto mode1 = static_cast<uint8_t>((value & ~MODE1_RESTART_) | MODE1_AI_);
+  return writeReg(static_cast<uint8_t>(Register::MODE1), mode1);
 }
 
 template <typename I2cType>

@@ -3,9 +3,10 @@
  * @brief A model of the PCA9685's I2C register interface for the host unit tests.
  *
  * It keeps the 256-byte register file with the power-on defaults of the datasheet (Rev. 4, section 7.3),
- * records every transaction the driver sends, and applies two rules of the chip that the driver depends on:
- * PRE_SCALE ignores writes while MODE1.SLEEP is 0, and a multi-byte access moves the register pointer only
- * when MODE1.AI is 1. Failures can be injected per transaction.
+ * records every transaction the driver sends, and applies the rules of the chip that the driver depends on:
+ * PRE_SCALE ignores writes while MODE1.SLEEP is 0, a multi-byte access moves the register pointer only when
+ * MODE1.AI is 1, and a write to ALL_LED_ON_L..ALL_LED_OFF_H loads that byte into every channel. Failures can
+ * be injected per transaction.
  */
 #pragma once
 
@@ -104,6 +105,11 @@ private:
       v &= 0x7F;                                  // writing 1 to RESTART clears it
     }
     regs_[r] = v;
+    if (r >= ALL_LED_ON_L && r <= ALL_LED_ON_L + 3) {
+      for (int ch = 0; ch < 16; ++ch) {
+        regs_[LED0_ON_L + 4 * ch + (r - ALL_LED_ON_L)] = v;  // ALL_LED fans out to every channel (7.3.4)
+      }
+    }
   }
 
   uint8_t address_;

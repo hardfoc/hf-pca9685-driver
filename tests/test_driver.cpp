@@ -15,7 +15,7 @@ TEST_CASE("EnsureInitialized resets MODE1 once and wakes the oscillator") {
   CHECK(!pwm.IsInitialized());
   REQUIRE(pwm.EnsureInitialized());
   CHECK(pwm.IsInitialized());
-  CHECK_EQ(bus.reg(MockPca9685::MODE1), 0x00);
+  CHECK_EQ(bus.reg(MockPca9685::MODE1), 0x20);   // awake, AI = 1 (Table 5)
   const auto writes = bus.log.size();
   REQUIRE(pwm.EnsureInitialized());
   CHECK_EQ(bus.log.size(), writes);               // second call: no bus traffic
@@ -154,4 +154,59 @@ TEST_CASE("Output configuration changes only its MODE2 bit") {
   CHECK_EQ(bus.reg(MockPca9685::MODE2), 0x10);
   REQUIRE(pwm.SetOutputDriverMode(true));
   CHECK_EQ(bus.reg(MockPca9685::MODE2), 0x14);
+}
+
+// ---- MODE1.AI: multi-byte channel writes need register auto-increment (datasheet 7.3.1, Table 5) ----
+
+namespace {
+uint16_t onTicks(const MockPca9685& bus, int ch) {
+  const auto base = static_cast<uint8_t>(MockPca9685::LED0_ON_L + 4 * ch);
+  return static_cast<uint16_t>(bus.reg(base) | (bus.reg(base + 1) << 8));
+}
+uint16_t offTicks(const MockPca9685& bus, int ch) {
+  const auto base = static_cast<uint8_t>(MockPca9685::LED0_ON_L + 4 * ch + 2);
+  return static_cast<uint16_t>(bus.reg(base) | (bus.reg(base + 1) << 8));
+}
+} // namespace
+
+TEST_CASE("SetPwm lands in all four LEDn registers (MODE1.AI set)") {
+  MockPca9685 bus;
+  Driver pwm(&bus, 0x40);
+  REQUIRE(pwm.SetPwm(5, 0x123, 0xABC));
+  CHECK_EQ(onTicks(bus, 5), 0x123);
+  CHECK_EQ(offTicks(bus, 5), 0xABC);
+  CHECK_EQ(onTicks(bus, 6), 0x000);               // neighbour untouched
+  CHECK_EQ(offTicks(bus, 6), 0x1000);
+}
+
+TEST_CASE("SetAllPwm and the full on / full off calls land in the channel registers") {
+  MockPca9685 bus;
+  Driver pwm(&bus, 0x40);
+  REQUIRE(pwm.SetAllPwm(0x100, 0x900));
+  for (int ch = 0; ch < 16; ++ch) {
+    CHECK_EQ(onTicks(bus, ch), 0x100);
+    CHECK_EQ(offTicks(bus, ch), 0x900);
+  }
+  REQUIRE(pwm.SetChannelFullOn(2));
+  CHECK_EQ(onTicks(bus, 2), 0x1000);
+  CHECK_EQ(offTicks(bus, 2), 0x0000);
+  REQUIRE(pwm.SetChannelFullOff(3));
+  CHECK_EQ(onTicks(bus, 3), 0x0000);
+  CHECK_EQ(offTicks(bus, 3), 0x1000);
+}
+
+TEST_CASE("MODE1.AI stays set through SetPwmFreq, Sleep, Wake and Reset") {
+  MockPca9685 bus;
+  Driver pwm(&bus, 0x40);
+  REQUIRE(pwm.SetPwmFreq(50.0f));
+  CHECK_EQ(bus.reg(MockPca9685::MODE1) & 0x20, 0x20);
+  REQUIRE(pwm.Sleep());
+  CHECK_EQ(bus.reg(MockPca9685::MODE1) & 0x20, 0x20);
+  REQUIRE(pwm.Wake());
+  CHECK_EQ(bus.reg(MockPca9685::MODE1) & 0x20, 0x20);
+  bus.setReg(MockPca9685::MODE1, 0x00);           // someone cleared AI behind the driver's back
+  REQUIRE(pwm.Reset());
+  CHECK_EQ(bus.reg(MockPca9685::MODE1) & 0x20, 0x20);
+  REQUIRE(pwm.SetPwm(1, 10, 20));
+  CHECK_EQ(offTicks(bus, 1), 20);
 }

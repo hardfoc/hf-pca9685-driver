@@ -32,10 +32,10 @@ Channels are `0` to `15` (`MAX_CHANNELS_ = 16`); ticks are `0` to `4095` (`MAX_P
 --8<-- "tests/docs/api_tasks.cpp:init"
 ```
 
-`EnsureInitialized()` brings your bus up and writes MODE1 = `0x00`: oscillator on, auto-increment, sub-addresses
-and All Call off. Every other call runs it on first use, so this step is optional, but calling it at start-up
-reports a wiring problem where you can act on it. `Reset()` writes MODE1 again at any time; it does not touch the
-channel registers, MODE2 or PRE_SCALE.
+`EnsureInitialized()` brings your bus up and writes MODE1 = `0x20`: oscillator on, register auto-increment on
+(MODE1.AI, which the four-byte channel writes need), sub-addresses and All Call off. Every other call runs it on
+first use, so this step is optional, but calling it at start-up reports a wiring problem where you can act on it.
+`Reset()` writes MODE1 again at any time; it does not touch the channel registers, MODE2 or PRE_SCALE.
 
 ## Set the frequency
 
