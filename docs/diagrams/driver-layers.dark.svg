@@ -44,10 +44,12 @@
 <text x="56" y="375.5" font-size="16" font-weight="700" fill="#C7CBFF">SetOutputInvert()</text>
 <rect x="218.2" y="357.4" width="211.4" height="26" rx="13" fill="#1C1F3D" stroke="#3B4080" stroke-width="1"/>
 <text x="226.2" y="375.5" font-size="16" font-weight="700" fill="#C7CBFF">SetOutputDriverMode()</text>
-<rect x="437.6" y="357.4" width="178.3" height="26" rx="13" fill="#1C1F3D" stroke="#3B4080" stroke-width="1"/>
-<text x="445.6" y="375.5" font-size="16" font-weight="700" fill="#C7CBFF">SetChannelFullOn()</text>
-<rect x="624" y="357.4" width="181.2" height="26" rx="13" fill="#1C1F3D" stroke="#3B4080" stroke-width="1"/>
-<text x="632" y="375.5" font-size="16" font-weight="700" fill="#C7CBFF">SetChannelFullOff()</text>
+<rect x="437.6" y="357.4" width="169.6" height="26" rx="13" fill="#1C1F3D" stroke="#3B4080" stroke-width="1"/>
+<text x="445.6" y="375.5" font-size="16" font-weight="700" fill="#C7CBFF">SetOutputEnable()</text>
+<rect x="615.3" y="357.4" width="178.3" height="26" rx="13" fill="#1C1F3D" stroke="#3B4080" stroke-width="1"/>
+<text x="623.3" y="375.5" font-size="16" font-weight="700" fill="#C7CBFF">SetChannelFullOn()</text>
+<rect x="801.6" y="357.4" width="181.2" height="26" rx="13" fill="#1C1F3D" stroke="#3B4080" stroke-width="1"/>
+<text x="809.6" y="375.5" font-size="16" font-weight="700" fill="#C7CBFF">SetChannelFullOff()</text>
 <text x="48" y="307.4" font-size="17" font-weight="700" fill="#C7CBFF">HARDWARE-AGNOSTIC CORE</text>
 <text x="326.2" y="307.4" font-size="16" fill="#C7CBFF">PCA9685&lt;I2cType&gt;, inc/pca9685.hpp</text>
 <text x="56" y="476.4" font-size="20" font-weight="700" fill="#C7CBFF">Communication interface</text>
