@@ -1,119 +1,67 @@
----
-layout: default
-title: "🛠️ Installation"
-description: "Installation and build instructions for the PCA9685 driver"
-nav_order: 1
-parent: "📚 Documentation"
-permalink: /docs/installation/
----
-
 # Installation
 
-This guide covers how to obtain, build, and verify the PCA9685 driver library.
+Add the driver to a CMake or ESP-IDF project. It is a header-only C++20 library with no dependencies.
 
-## Prerequisites
+## Requirements
 
-Before installing the driver, ensure you have:
+- A C++20 compiler: GCC 10+, Clang 12+ or a current MSVC.
+- CMake 3.16 or later: it generates the version header the driver includes (`pca9685_version.h`).
+- No RTOS, heap or exceptions: every call is `noexcept` and returns `bool`.
 
-- **C++11 Compiler**: GCC 4.8+, Clang 3.3+, or MSVC 2013+
-- **Build System**: Make or CMake (optional, for building static library)
-- **Platform SDK**: Your platform's I2C driver (ESP-IDF, STM32 HAL, Arduino Wire, etc.)
+## Get the source
 
-## Obtaining the Source
-
-### Option 1: Git Clone
+A git submodule keeps the driver pinned to a version you chose:
 
 ```bash
-git clone https://github.com/hardfoc/hf-pca9685-driver.git
-cd hf-pca9685-driver
+git submodule add https://github.com/hardfoc/hf-pca9685-driver.git external/hf-pca9685-driver
+git submodule update --init external/hf-pca9685-driver
 ```
 
-### Option 2: Copy Files
+Only `inc/`, `src/`, `cmake/` and `CMakeLists.txt` are needed to build. The examples have their own submodule
+(`examples/esp32/scripts`); you do not need it to use the driver.
 
-Copy the following files into your project:
-
-```
-inc/
-  ├── pca9685.hpp
-  └── pca9685_i2c_interface.hpp
-src/
-  └── pca9685.ipp
-```
-
-**Note**: The driver uses a template design: the implementation is in `src/pca9685.ipp` and is
-included by `inc/pca9685.hpp`. Your build must have `inc/` and `src/` on the include path so that
-`pca9685.hpp` can include the `.ipp` file. You do not compile `pca9685.ipp` as a separate
-translation unit.
-
-## Building the Library
-
-### As Part of Your Project (Include Path)
-
-Since the driver is header-only (template implementation in `.ipp`), add the repository `inc/` and
-`src/` directories to your include path and include the main header:
-
-```cpp
-#include "pca9685.hpp"
-```
-
-Your build system must allow the header to find `../src/pca9685.ipp` (relative to the header) or
-you can add `src/` to the include path as well.
-
-### Using CMake
+## CMake
 
 ```cmake
-# Include path must include both inc and src (for .ipp include from header)
-target_include_directories(your_target
-    PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/hf-pca9685-driver/inc
-    ${CMAKE_CURRENT_SOURCE_DIR}/hf-pca9685-driver/src
-)
-# No separate library: template is instantiated in your code
+add_subdirectory(external/hf-pca9685-driver)
+target_link_libraries(my_app PRIVATE hf::pca9685)
 ```
 
-### Using ESP-IDF (ESP32 Examples)
+`hf::pca9685` is an alias of the `hf_pca9685` INTERFACE target. It carries the include directories (the headers
+and the generated version header) and requires C++20 (`cxx_std_20`), so your target does not need to set either.
 
-The driver is provided as an ESP-IDF component in the ESP32 examples. Build and flash using the
-example scripts:
+| Option | Default | Effect |
+| --- | --- | --- |
+| `HF_PCA9685_ENABLE_WARNINGS` | `OFF` | `-Wall -Wextra -Wpedantic` on every target that links the driver |
+| `HF_PCA9685_BUILD_TESTS` | `OFF` | Builds the host unit tests in `tests/` ([Testing and CI](testing.md)) |
 
-```bash
-cd examples/esp32
-./scripts/build_app.sh list                    # List available apps
-./scripts/build_app.sh pca9685_comprehensive_test Debug
-./scripts/flash_app.sh flash_monitor pca9685_comprehensive_test Debug
+Use the driver from its source tree as above. The `install()` rules do not yet produce a usable package: they
+leave out `src/pca9685.ipp`, which the header includes, and export the target as `hf::hf_pca9685`.
+
+## ESP-IDF
+
+The ESP-IDF component wrapper is
+[`examples/esp32/components/hf_pca9685/`](../examples/esp32/components/hf_pca9685/CMakeLists.txt). Copy that
+folder into your project's `components/` (or point `EXTRA_COMPONENT_DIRS` at it) and set the `HF_PCA9685_ROOT`
+cache variable to the driver checkout; the wrapper stops with a clear message when the path is wrong. Your
+component then declares `REQUIRES hf_pca9685`.
+
+## How the build is organised
+
+| Layer | File | Role |
+| --- | --- | --- |
+| Settings | [`cmake/hf_pca9685_build_settings.cmake`](../cmake/hf_pca9685_build_settings.cmake) | Target name, include directories, version: the single source of truth |
+| Library | [`CMakeLists.txt`](../CMakeLists.txt) | INTERFACE target, install and package export |
+| ESP-IDF | [`examples/esp32/components/hf_pca9685/CMakeLists.txt`](../examples/esp32/components/hf_pca9685/CMakeLists.txt) | IDF component wrapper over the same settings |
+
+The version is set once in the settings file and written into `pca9685_version.h` in the build tree at
+configure time. Read it at run time:
+
+```cpp
+const char* v = pca9685::PCA9685<MyI2c>::GetDriverVersion();   // "1.0.0"
 ```
 
-See [examples/esp32/README.md](../examples/esp32/README.md) and
-[examples/esp32/docs/](../examples/esp32/docs/) for full setup and app descriptions.
+## Next
 
-## Verification
-
-To verify the installation:
-
-1. Include the header in a test file:
-   ```cpp
-   #include "pca9685.hpp"
-   // Provide an I2C implementation and instantiate PCA9685<YourI2c>
-   ```
-
-2. Ensure your include path contains both `inc/` and `src/` (so `pca9685.hpp` can include `pca9685.ipp`).
-
-3. For hardware verification, use the ESP32 comprehensive test app (see [Examples](examples.md)):
-   ```bash
-   cd examples/esp32
-   ./scripts/build_app.sh pca9685_comprehensive_test Debug
-   ./scripts/flash_app.sh flash_monitor pca9685_comprehensive_test Debug
-   ```
-   All 12 tests should pass when the PCA9685 is connected at 0x40 on the configured I2C pins.
-
-## Next Steps
-
-- Follow the [Quick Start](quickstart.md) guide to create your first application
-- Review [Hardware Setup](hardware_setup.md) for wiring instructions
-- Check [Platform Integration](platform_integration.md) to implement the I2C interface
-
----
-
-**Navigation**
-⬅️ [Back to Index](index.md) | [Next: Quick Start ➡️](quickstart.md)
-
+[Quickstart](quickstart.md) wires the chip and centres a servo; [Porting](porting.md) writes the I2C interface
+for your MCU.

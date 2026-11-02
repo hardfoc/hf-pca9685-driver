@@ -1,0 +1,14 @@
+{
+  "driver-layers": {
+    "title": "Three layers, one of them yours",
+    "alt": "Layer diagram: the application calls the hardware-agnostic PCA9685 driver, which uses the CRTP I2C interface, which calls the platform port you write, which drives the I2C bus and the 16 PWM outputs of the PCA9685.",
+    "description": "From top to bottom. Your application talks to one PCA9685<I2cType> object, whose public calls (listed from inc/pca9685.hpp) set the frequency, the channels and the output stage. Each call turns into register reads and writes with retries. The communication interface (I2cInterface in inc/pca9685_i2c_interface.hpp) is a CRTP base that forwards them to your class. The platform port is the only code you write: a class that brings the I2C bus up and moves register bytes over it. Below it is the hardware.",
+    "profile": "overview",
+    "width": 1200,
+    "source": "docs/diagrams/figures/driver-layers.py",
+    "sources": [
+      "inc/pca9685.hpp:PCA9685 public calls",
+      "inc/pca9685_i2c_interface.hpp:I2cInterface"
+    ]
+  }
+}

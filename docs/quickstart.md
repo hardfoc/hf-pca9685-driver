@@ -1,142 +1,73 @@
----
-layout: default
-title: "⚡ Quick Start"
-description: "Get up and running with the PCA9685 driver in minutes"
-nav_order: 2
-parent: "📚 Documentation"
-permalink: /docs/quickstart/
----
+# Quickstart
 
-# Quick Start
+Centre a hobby servo from your MCU: wire four signals, write a small port class, call three driver functions.
 
-This guide will get you up and running with the PCA9685 driver in just a few steps.
+!!! warning "Before you power the servo"
+    Power servos from their own 5 V supply, not from the PCA9685's VDD or your MCU's regulator, and join the
+    grounds. A stalled servo draws far more than a logic rail can give.
 
-## Prerequisites
+## 1. Wire it
 
-- [Driver installed](installation.md)
-- [Hardware wired](hardware_setup.md)
-- [I2C interface implemented](platform_integration.md)
+| MCU | PCA9685 | Notes |
+| --- | --- | --- |
+| I2C SCL | SCL (pin 26, TSSOP28) | Pull-up to VDD; 4.7 kΩ suits 100 kHz and 400 kHz |
+| I2C SDA | SDA (pin 27) | Pull-up to VDD |
+| 3.3 V or 5 V | VDD (pin 28) | 2.3 V to 5.5 V; 100 nF to VSS close to the pin |
+| GND | VSS (pin 14) | Common with the servo supply ground |
+| GND or a GPIO | OE (pin 23) | Active low: tie it low, or drive it to blank all outputs |
+| GND | A0 to A5, EXTCLK | All low: address `0x40`; EXTCLK must be grounded when unused |
+| | LED0 (pin 6) | Servo signal wire |
 
-## Minimal Example
+The [Hardware](hardware.md) page has the full pin list, the address table and the electrical limits. Breakout
+boards usually fit the pull-ups and tie OE and the address pins already: check yours.
 
-Here's a complete working example:
+## 2. Add the driver
 
-```cpp
-#include "pca9685.hpp"
+Add the repository as a submodule and link the `hf_pca9685` CMake target. [Installation](installation.md)
+covers CMake and ESP-IDF.
 
-// 1. Implement the I2C interface
-class MyI2c : public pca9685::I2cInterface<MyI2c> {
-public:
-    bool EnsureInitialized() noexcept { return true; }
-    bool Write(uint8_t addr, uint8_t reg, const uint8_t *data, size_t len) noexcept {
-        // Your I2C write implementation
-        return true;
-    }
-    
-    bool Read(uint8_t addr, uint8_t reg, uint8_t *data, size_t len) noexcept {
-        // Your I2C read implementation
-        return true;
-    }
-};
-
-// 2. Create instances
-MyI2c i2c;
-pca9685::PCA9685<MyI2c> pwm(&i2c, 0x40); // 0x40 is default I2C address
-
-// 3. Initialize
-if (!pwm.Reset()) {
-    // Handle initialization error
-    return;
-}
-
-// 4. Set PWM frequency (required before setting channels)
-pwm.SetPwmFreq(50.0f); // 50 Hz for servos
-
-// 5. Set channel 0 to 50% duty cycle
-pwm.SetDuty(0, 0.5f);
+```bash
+git submodule add https://github.com/hardfoc/hf-pca9685-driver.git external/hf-pca9685-driver
 ```
 
-## Step-by-Step Explanation
+## 3. Write the port
 
-### Step 1: Include the Header
+The port is the only platform code. It brings the bus up and moves register bytes. Replace the three
+`platform_*` calls with your SDK's.
 
-```cpp
-#include "pca9685.hpp"
+```cpp title="my_i2c.hpp"
+--8<-- "tests/docs/my_i2c.hpp:port"
 ```
 
-### Step 2: Implement the I2C Interface
+[Porting](porting.md) explains each method and the transfer rules.
 
-You need to implement the `I2cInterface` for your platform. See
-[Platform Integration](platform_integration.md) for detailed examples for ESP32, STM32, and Arduino.
+## 4. Centre the servo
 
-The interface requires two methods:
-- `Write(uint8_t addr, uint8_t reg, const uint8_t *data, size_t len)` - Write data to a register
-- `Read(uint8_t addr, uint8_t reg, uint8_t *data, size_t len)` - Read data from a register
-
-### Step 3: Create Driver Instance
-
-```cpp
-MyI2c i2c;
-pca9685::PCA9685<MyI2c> pwm(&i2c, 0x40);
+```cpp title="main.cpp"
+--8<-- "tests/docs/quickstart.cpp:quickstart"
 ```
 
-The constructor takes:
-- Pointer to your I2C interface implementation
-- I2C address (0x40 is the default, can be changed via A0-A5 pins)
+What each step does:
 
-### Step 4: Initialize
+1. `EnsureInitialized()` calls your port's `EnsureInitialized()`, then writes MODE1 = `0x00`, which starts the
+   oscillator. Every other call runs it for you if you skip it.
+2. `SetPwmFreq(50.0f)` writes PRE_SCALE = 121 (the chip only accepts it while asleep; the driver handles that),
+   giving a 20 ms frame.
+3. `SetDuty(0, 0.075f)` sets channel 0 high for 7.5 % of each frame: 1.5 ms, the centre of a typical servo.
 
-```cpp
-if (!pwm.Reset()) {
-    // Handle initialization failure
-    uint16_t flags = pwm.GetErrorFlags(); // Bitmask error flags
-    auto error = pwm.GetLastError();      // Convenience accessor
-}
-```
+This example is built by the host CI, so it compiles against the current headers.
 
-`Reset()` puts the device in a known state and must be called before other operations.
+## If it does not work
 
-### Step 5: Set PWM Frequency
+| Symptom | First thing to check |
+| --- | --- |
+| `EnsureInitialized()` returns `false` | Pull-ups on SCL and SDA, VDD, the address (A0 to A5) |
+| Calls succeed, output stays low | OE must be low; the chip is not asleep (`Wake()`) |
+| Output wrong on a channel | Auto-increment ([Troubleshooting](troubleshooting.md#channel-outputs-are-wrong-or-do-not-change)) |
+| Servo jitters or sits off centre | Frequency and pulse width ([PWM timing](pwm-timing.md#servo-pulses)) |
 
-```cpp
-pwm.SetPwmFreq(50.0f); // 50 Hz for servos
-```
+## Next
 
-**Important**: You must set the frequency before setting channel outputs. Valid range is 24-1526 Hz.
-
-### Step 6: Control Channels
-
-```cpp
-// Set duty cycle (0.0 = off, 1.0 = fully on)
-pwm.SetDuty(0, 0.5f); // Channel 0 at 50%
-
-// Or set precise timing
-pwm.SetPwm(1, 0, 2048); // Channel 1: on at 0, off at 2048 (50% duty)
-```
-
-## Expected Output
-
-When running this example with a servo on channel 0:
-- The servo should move to its center position (1.5ms pulse at 50 Hz)
-- No error messages should appear
-
-## Troubleshooting
-
-If you encounter issues:
-
-- **Compilation errors**: Check that you've implemented all required I2C interface methods
-- **Initialization fails**: Verify hardware connections and I2C address
-- **No output**: Ensure `SetPwmFreq()` was called before setting channels
-- **See**: [Troubleshooting](troubleshooting.md) for common issues
-
-## Next Steps
-
-- Explore [Examples](examples.md) for more advanced usage
-- Review the [API Reference](api_reference.md) for all available methods
-- Check [Configuration](configuration.md) for customization options
-
----
-
-**Navigation**
-⬅️ [Installation](installation.md) | [Next: Hardware Setup ➡️](hardware_setup.md) | [Back to Index](index.md)
-
+- [API guide](api-guide.md): frequency, channels, sleep, output stage, errors.
+- [Examples](examples.md): an ESP32-S3 test suite and a 16-servo demo.
+- [PWM timing](pwm-timing.md): how the 12-bit counter, ON and OFF ticks and the prescaler fit together.

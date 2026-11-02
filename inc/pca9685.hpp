@@ -322,8 +322,9 @@ public:
    *
    * @return Null-terminated version string, e.g. "1.0.0".
    *
-   * @example
+   * @code
    *   ESP_LOGI("APP", "PCA9685 driver v%s", PCA9685::GetDriverVersion());
+   * @endcode
    */
   static constexpr const char* GetDriverVersion() noexcept {
     return HF_PCA9685_VERSION_STRING;

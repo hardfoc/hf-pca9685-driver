@@ -1,0 +1,26 @@
+{
+  "calls": [
+    "EnsureInitialized",
+    "Reset",
+    "SetPwmFreq",
+    "SetPwm",
+    "SetDuty",
+    "SetAllPwm",
+    "GetPrescale",
+    "Sleep",
+    "Wake",
+    "SetOutputInvert",
+    "SetOutputDriverMode",
+    "SetChannelFullOn",
+    "SetChannelFullOff"
+  ],
+  "port_hooks": [
+    "EnsureInitialized",
+    "Write",
+    "Read"
+  ],
+  "sources": [
+    "inc/pca9685.hpp:PCA9685 public calls",
+    "inc/pca9685_i2c_interface.hpp:I2cInterface"
+  ]
+}
