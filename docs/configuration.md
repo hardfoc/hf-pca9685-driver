@@ -33,14 +33,14 @@ software reset.
 
 | Register | Power-up value | After `EnsureInitialized()` | Changed by |
 | --- | --- | --- | --- |
-| MODE1 | `0x11`: SLEEP, ALLCALL | `0x00`: awake, AI off, ALLCALL off | `Reset()`, `SetPwmFreq()`, `Sleep()`, `Wake()` |
+| MODE1 | `0x11`: SLEEP, ALLCALL | `0x20`: awake, AI on, ALLCALL off | `Reset()`, `SetPwmFreq()`, `Sleep()`, `Wake()` |
 | MODE2 | `0x04`: totem pole, change on STOP, OUTNE = 00 | unchanged | `SetOutputDriverMode()`, `SetOutputInvert()` |
 | PRE_SCALE | `0x1E` (30): about 200 Hz | unchanged | `SetPwmFreq()` |
 | LEDn_ON / LEDn_OFF | full off (`LEDn_OFF_H` bit 4 = 1) | unchanged | channel calls |
 
 Power-up values: Tables 4 to 8 of the [datasheet](datasheet/PCA9685.pdf). Because `Reset()` clears ALLCALL, the
-chip stops answering the All Call address `0x70` after the driver starts. MODE1.AI is also left at 0; see
-[Troubleshooting](troubleshooting.md#channel-outputs-are-wrong-or-do-not-change).
+chip stops answering the All Call address `0x70` after the driver starts. MODE1.AI (register auto-increment) is
+set by `Reset()` and kept by every later MODE1 write, so each four-byte channel write reaches all four registers.
 
 ## Build options
 

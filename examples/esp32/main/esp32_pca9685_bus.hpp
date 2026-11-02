@@ -28,6 +28,7 @@ extern "C" {
 #include "driver/i2c_master.h"
 #include "esp_err.h"
 #include "esp_log.h"
+#include "esp_rom_sys.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #ifdef __cplusplus
@@ -223,6 +224,17 @@ public:
     }
 
     return true;
+  }
+
+  /**
+   * @brief Busy-wait for at least @p us microseconds (optional I2cInterface hook).
+   *
+   * The driver calls it with 500 after clearing MODE1.SLEEP, for the oscillator start-up time
+   * (PCA9685 datasheet Table 5, note 2).
+   * @param us Time to wait in microseconds.
+   */
+  void DelayUs(uint32_t us) noexcept {
+    esp_rom_delay_us(us);
   }
 
   /**

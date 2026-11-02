@@ -24,10 +24,15 @@ nothing to allocate.
 | `EnsureInitialized()` | Bring the bus up on the first call; return `true` at once afterwards. `false` stops the driver from starting |
 | `Write(addr, reg, data, len)` | One transaction: START, `addr` + W, `reg`, `len` bytes, STOP. `true` only if every byte was acknowledged |
 | `Read(addr, reg, data, len)` | One transaction: START, `addr` + W, `reg`, repeated START, `addr` + R, `len` bytes, STOP |
-| `GpioSet(pin, signal)` | Optional; the driver never calls it (see below) |
+| `DelayUs(us)` | Optional, recommended: wait at least `us` microseconds. The driver calls it with 500 after it clears MODE1.SLEEP, for the oscillator start-up time (datasheet Table 5, note 2) |
+| `GpioSet(pin, signal)` | Optional: drive the OE pin; called by `SetOutputEnable()` (see below) |
 
 `addr` is the 7-bit address; shift it left yourself if your SDK wants the 8-bit form. The driver writes at most
 four data bytes per call and reads one.
+
+The optional methods are found at compile time: a port without them still builds. Without `DelayUs()` the driver
+covers the 500 µs start-up with 13 one-byte reads of MODE1, enough at any bus clock up to 1 MHz, so give your port
+a `DelayUs()` if its `Read()` can return without running a bus transaction.
 
 ## I2C port
 
@@ -49,9 +54,18 @@ Rules the transfer must follow:
 
 ## The OE pin
 
-`I2cInterface` declares `GpioSet(CtrlPin::OE, GpioSignal)` and helpers `GpioSetActive()` and `GpioSetInactive()`,
-with a do-nothing default. The driver never calls them, and the helpers call the base class's `GpioSet()`, not
-yours. Drive OE from your application instead: low to enable the outputs, high to blank them.
+OE is active low (datasheet section 7.4): low, the outputs follow their registers; high, they take the
+MODE2.OUTNE state, low by default. If OE is wired to a GPIO, declare `GpioSet()` in your port and map
+`GpioSignal::ACTIVE` (outputs enabled) to a low level:
+
+```cpp
+--8<-- "tests/docs/ports.cpp:oe-port"
+```
+
+`SetOutputEnable(true)` calls `GpioSet(CtrlPin::OE, GpioSignal::ACTIVE)` and `SetOutputEnable(false)` calls it
+with `INACTIVE`; the base class helpers `GpioSetActive()` and `GpioSetInactive()` reach your `GpioSet()` too. A
+port without `GpioSet()` inherits a do-nothing default, for boards with OE tied low. The driver never drives OE
+on its own, so your port can hold the outputs blanked from power-up until the channels are programmed.
 
 ## Reference implementation
 

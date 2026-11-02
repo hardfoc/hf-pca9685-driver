@@ -18,7 +18,7 @@ Every call that touches the chip is `noexcept` and returns `bool`.
 | Frequency | `SetPwmFreq(float hz)`, `GetPrescale(uint8_t&)` |
 | One channel | `SetDuty(ch, duty)`, `SetPwm(ch, on, off)`, `SetChannelFullOn(ch)`, `SetChannelFullOff(ch)` |
 | All channels | `SetAllPwm(on, off)` |
-| Output stage | `SetOutputDriverMode(bool totem_pole)`, `SetOutputInvert(bool invert)` |
+| Output stage | `SetOutputDriverMode(bool totem_pole)`, `SetOutputInvert(bool invert)`, `SetOutputEnable(bool enable)` |
 | Power | `Sleep()`, `Wake()` |
 | Errors | `GetErrorFlags()`, `HasError(e)`, `HasAnyError()`, `ClearError(e)`, `ClearErrorFlags(mask)`, `GetLastError()` |
 | Bus robustness | `SetRetries(int)`, `SetRetryDelay(void (*)())` |
@@ -32,10 +32,10 @@ Channels are `0` to `15` (`MAX_CHANNELS_ = 16`); ticks are `0` to `4095` (`MAX_P
 --8<-- "tests/docs/api_tasks.cpp:init"
 ```
 
-`EnsureInitialized()` brings your bus up and writes MODE1 = `0x00`: oscillator on, auto-increment, sub-addresses
-and All Call off. Every other call runs it on first use, so this step is optional, but calling it at start-up
-reports a wiring problem where you can act on it. `Reset()` writes MODE1 again at any time; it does not touch the
-channel registers, MODE2 or PRE_SCALE.
+`EnsureInitialized()` brings your bus up and writes MODE1 = `0x20`: oscillator on, register auto-increment on
+(MODE1.AI, which the four-byte channel writes need), sub-addresses and All Call off. Every other call runs it on
+first use, so this step is optional, but calling it at start-up reports a wiring problem where you can act on it.
+`Reset()` writes MODE1 again at any time; it does not touch the channel registers, MODE2 or PRE_SCALE.
 
 ## Set the frequency
 
@@ -55,7 +55,7 @@ briefly stops the oscillator and every output; call it once at start-up, not in 
 
 | Call | Use it for |
 | --- | --- |
-| `SetDuty(ch, duty)` | LED brightness, motor speed: `duty` from 0.0 to 1.0, clamped, rising edge at tick 0 |
+| `SetDuty(ch, duty)` | LED brightness, motor speed: `duty` from 0.0 to 1.0, clamped, rising edge at tick 0; 0.0 is full off, 1.0 full on |
 | `SetPwm(ch, on, off)` | Exact pulse widths (servos) and phase-shifted channels |
 | `SetChannelFullOn(ch)`, `SetChannelFullOff(ch)` | A constant high or low, with no PWM edges |
 | `SetAllPwm(on, off)` | The same value on all 16 channels in one write |
@@ -76,6 +76,13 @@ The power-up default is totem pole, not inverted: right for servo signals and lo
 LEDs with built-in Zener diodes, and inversion for LEDs wired from VDD to the pin. [Hardware](hardware.md#output-stage)
 has the MODE2 bits.
 
+With OE wired to a GPIO, `SetOutputEnable()` blanks or enables all 16 outputs at once through your port's
+`GpioSet()` ([Porting](porting.md#the-oe-pin)); it sends nothing on the bus:
+
+```cpp
+--8<-- "tests/docs/api_tasks.cpp:output-enable"
+```
+
 ## Sleep and wake
 
 ```cpp
@@ -83,9 +90,10 @@ has the MODE2 bits.
 ```
 
 `Sleep()` sets MODE1.SLEEP: the oscillator stops, the outputs stop and the chip draws 2.2 µA typical. The channel
-registers keep their values. `Wake()` clears SLEEP and, when the chip set RESTART on the way into sleep, writes
-RESTART to resume every channel where it was. The oscillator needs up to 500 µs to start; wait that long before
-you rely on output timing.
+registers keep their values. `Wake()` follows the restart procedure of section 7.3.1.1: it clears SLEEP, waits
+the 500 µs oscillator start-up time and then, when the chip set RESTART on the way into sleep, writes RESTART to
+resume every channel where it was. When `Wake()` returns, output timing is valid again. The wait goes through your
+port's optional `DelayUs()` ([Porting](porting.md)).
 
 ## Handle errors
 

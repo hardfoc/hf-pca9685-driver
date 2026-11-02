@@ -12,7 +12,6 @@
 using Driver = pca9685::PCA9685<MyI2c>;
 
 void platform_delay_ms(uint32_t ms) noexcept;  // your SDK's delay
-void platform_delay_us(uint32_t us) noexcept;
 
 bool init(MyI2c& bus) {
   // --8<-- [start:init]
@@ -21,7 +20,7 @@ bool init(MyI2c& bus) {
   pwm.SetRetries(2);                              // up to 3 attempts per register access
   pwm.SetRetryDelay([] { platform_delay_ms(1); }); // between attempts: let the bus recover
 
-  if (!pwm.EnsureInitialized()) {                 // bus up, then MODE1 = 0x00 (oscillator on)
+  if (!pwm.EnsureInitialized()) {                 // bus up, then MODE1 = 0x20 (oscillator on, AI)
     return false;
   }
   // --8<-- [end:init]
@@ -76,18 +75,24 @@ bool configure_outputs(Driver& pwm) {
   // --8<-- [end:output-config]
 }
 
+bool blank_outputs(Driver& pwm) {
+  // --8<-- [start:output-enable]
+  pwm.SetOutputEnable(false);                     // OE high: all outputs blanked (MODE2.OUTNE state)
+  if (!pwm.SetAllPwm(0, 2048)) {                  // program the channels while blanked
+    return false;
+  }
+  return pwm.SetOutputEnable(true);               // OE low: outputs follow their registers
+  // --8<-- [end:output-enable]
+}
+
 bool power(Driver& pwm) {
   // --8<-- [start:power]
   if (!pwm.Sleep()) {                             // MODE1.SLEEP = 1: oscillator off, outputs stop
     return false;
   }
   // ... low-power period ...
-  if (!pwm.Wake()) {                              // MODE1.SLEEP = 0, then RESTART if it was set
-    return false;
-  }
-  platform_delay_us(500);                         // oscillator start-up, 500 us max (datasheet)
+  return pwm.Wake();                              // SLEEP = 0, 500 us start-up, then RESTART
   // --8<-- [end:power]
-  return true;
 }
 
 void errors(Driver& pwm) {
@@ -102,14 +107,4 @@ void errors(Driver& pwm) {
     pwm.ClearErrorFlags();                        // flags accumulate until you clear them
   }
   // --8<-- [end:errors]
-}
-
-bool enable_auto_increment(MyI2c& bus, Driver& pwm) {
-  // --8<-- [start:auto-increment]
-  if (!pwm.EnsureInitialized()) {                 // leaves MODE1 = 0x00
-    return false;
-  }
-  const uint8_t mode1 = 0x20;                     // MODE1.AI = 1, oscillator on, ALLCALL off
-  return bus.Write(0x40, 0x00, &mode1, 1);        // once, before the first channel write
-  // --8<-- [end:auto-increment]
 }

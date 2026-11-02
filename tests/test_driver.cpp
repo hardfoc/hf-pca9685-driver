@@ -15,7 +15,7 @@ TEST_CASE("EnsureInitialized resets MODE1 once and wakes the oscillator") {
   CHECK(!pwm.IsInitialized());
   REQUIRE(pwm.EnsureInitialized());
   CHECK(pwm.IsInitialized());
-  CHECK_EQ(bus.reg(MockPca9685::MODE1), 0x00);
+  CHECK_EQ(bus.reg(MockPca9685::MODE1), 0x20);   // awake, AI = 1 (Table 5)
   const auto writes = bus.log.size();
   REQUIRE(pwm.EnsureInitialized());
   CHECK_EQ(bus.log.size(), writes);               // second call: no bus traffic
@@ -106,16 +106,20 @@ TEST_CASE("SetPwm rejects channel 16 and ticks above 4095 without bus traffic") 
   CHECK_EQ(bus.log.size(), before);
 }
 
-TEST_CASE("SetDuty maps 0..1 to OFF ticks 0..4095 and clamps") {
+TEST_CASE("SetDuty maps 0..1 to OFF ticks and clamps") {
   MockPca9685 bus;
   Driver pwm(&bus, 0x40);
   REQUIRE(pwm.SetDuty(0, 0.5f));
+  auto on = [&] { const auto& d = bus.log.back().data; return d[0] | (d[1] << 8); };
   auto off = [&] { const auto& d = bus.log.back().data; return d[2] | (d[3] << 8); };
+  CHECK_EQ(on(), 0);
   CHECK_EQ(off(), 2048);                          // lround(0.5 * 4095)
-  REQUIRE(pwm.SetDuty(0, 2.0f));
+  REQUIRE(pwm.SetDuty(0, 0.9999f));
   CHECK_EQ(off(), 4095);
-  REQUIRE(pwm.SetDuty(0, -1.0f));
-  CHECK_EQ(off(), 0);
+  REQUIRE(pwm.SetDuty(0, 2.0f));                  // clamped to 1.0: full ON
+  CHECK_EQ(on(), 0x1000);
+  REQUIRE(pwm.SetDuty(0, -1.0f));                 // clamped to 0.0: full OFF
+  CHECK_EQ(off(), 0x1000);
 }
 
 TEST_CASE("Full on and full off set bit 4 of LEDn_ON_H or LEDn_OFF_H") {
@@ -154,4 +158,193 @@ TEST_CASE("Output configuration changes only its MODE2 bit") {
   CHECK_EQ(bus.reg(MockPca9685::MODE2), 0x10);
   REQUIRE(pwm.SetOutputDriverMode(true));
   CHECK_EQ(bus.reg(MockPca9685::MODE2), 0x14);
+}
+
+// ---- MODE1.AI: multi-byte channel writes need register auto-increment (datasheet 7.3.1, Table 5) ----
+
+namespace {
+uint16_t onTicks(const MockPca9685& bus, int ch) {
+  const auto base = static_cast<uint8_t>(MockPca9685::LED0_ON_L + 4 * ch);
+  return static_cast<uint16_t>(bus.reg(base) | (bus.reg(base + 1) << 8));
+}
+uint16_t offTicks(const MockPca9685& bus, int ch) {
+  const auto base = static_cast<uint8_t>(MockPca9685::LED0_ON_L + 4 * ch + 2);
+  return static_cast<uint16_t>(bus.reg(base) | (bus.reg(base + 1) << 8));
+}
+} // namespace
+
+TEST_CASE("SetPwm lands in all four LEDn registers (MODE1.AI set)") {
+  MockPca9685 bus;
+  Driver pwm(&bus, 0x40);
+  REQUIRE(pwm.SetPwm(5, 0x123, 0xABC));
+  CHECK_EQ(onTicks(bus, 5), 0x123);
+  CHECK_EQ(offTicks(bus, 5), 0xABC);
+  CHECK_EQ(onTicks(bus, 6), 0x000);               // neighbour untouched
+  CHECK_EQ(offTicks(bus, 6), 0x1000);
+}
+
+TEST_CASE("SetAllPwm and the full on / full off calls land in the channel registers") {
+  MockPca9685 bus;
+  Driver pwm(&bus, 0x40);
+  REQUIRE(pwm.SetAllPwm(0x100, 0x900));
+  for (int ch = 0; ch < 16; ++ch) {
+    CHECK_EQ(onTicks(bus, ch), 0x100);
+    CHECK_EQ(offTicks(bus, ch), 0x900);
+  }
+  REQUIRE(pwm.SetChannelFullOn(2));
+  CHECK_EQ(onTicks(bus, 2), 0x1000);
+  CHECK_EQ(offTicks(bus, 2), 0x0000);
+  REQUIRE(pwm.SetChannelFullOff(3));
+  CHECK_EQ(onTicks(bus, 3), 0x0000);
+  CHECK_EQ(offTicks(bus, 3), 0x1000);
+}
+
+TEST_CASE("MODE1.AI stays set through SetPwmFreq, Sleep, Wake and Reset") {
+  MockPca9685 bus;
+  Driver pwm(&bus, 0x40);
+  REQUIRE(pwm.SetPwmFreq(50.0f));
+  CHECK_EQ(bus.reg(MockPca9685::MODE1) & 0x20, 0x20);
+  REQUIRE(pwm.Sleep());
+  CHECK_EQ(bus.reg(MockPca9685::MODE1) & 0x20, 0x20);
+  REQUIRE(pwm.Wake());
+  CHECK_EQ(bus.reg(MockPca9685::MODE1) & 0x20, 0x20);
+  bus.setReg(MockPca9685::MODE1, 0x00);           // someone cleared AI behind the driver's back
+  REQUIRE(pwm.Reset());
+  CHECK_EQ(bus.reg(MockPca9685::MODE1) & 0x20, 0x20);
+  REQUIRE(pwm.SetPwm(1, 10, 20));
+  CHECK_EQ(offTicks(bus, 1), 20);
+}
+
+// ---- Oscillator start-up: 500 us after SLEEP is cleared (datasheet 7.3.1 note 2, 7.3.1.1) ----
+
+TEST_CASE("Wake waits 500 us before RESTART and resumes the running channels") {
+  MockPca9685 bus;
+  Driver pwm(&bus, 0x40);
+  REQUIRE(pwm.SetPwm(0, 0, 2048));
+  REQUIRE(pwm.Sleep());
+  CHECK_EQ(bus.reg(MockPca9685::MODE1) & 0x80, 0x80); // the chip set RESTART on the way into sleep
+  bus.delays_us.clear();
+  REQUIRE(pwm.Wake());
+  CHECK_EQ(bus.restarts, 1);
+  CHECK_EQ(bus.early_restarts, 0);
+  CHECK_EQ(bus.reg(MockPca9685::MODE1) & 0x90, 0x00); // awake, RESTART cleared
+  CHECK(bus.usSinceWake() >= 500.0);
+  REQUIRE(bus.delays_us.size() == 1U);
+  CHECK_EQ(bus.delays_us[0], 500U);
+}
+
+TEST_CASE("Wake waits for the oscillator even when RESTART is not set") {
+  MockPca9685 bus;
+  Driver pwm(&bus, 0x40);
+  REQUIRE(pwm.Sleep());                           // all channels full off: no RESTART
+  REQUIRE(pwm.Wake());
+  CHECK(bus.usSinceWake() >= 500.0);
+  CHECK_EQ(bus.restarts, 0);
+}
+
+TEST_CASE("SetPwmFreq restarts the running channels 500 us after waking") {
+  MockPca9685 bus;
+  Driver pwm(&bus, 0x40);
+  REQUIRE(pwm.SetPwm(4, 0, 1000));
+  REQUIRE(pwm.SetPwmFreq(50.0f));
+  CHECK_EQ(bus.reg(MockPca9685::PRE_SCALE), 121);
+  CHECK_EQ(bus.restarts, 1);
+  CHECK_EQ(bus.early_restarts, 0);
+  CHECK_EQ(bus.reg(MockPca9685::MODE1) & 0xB0, 0x20); // awake, AI, RESTART cleared
+  CHECK(bus.usSinceWake() >= 500.0);
+}
+
+TEST_CASE("SetPwmFreq leaves a sleeping chip asleep") {
+  MockPca9685 bus;
+  Driver pwm(&bus, 0x40);
+  REQUIRE(pwm.Sleep());
+  REQUIRE(pwm.SetPwmFreq(100.0f));
+  CHECK_EQ(bus.reg(MockPca9685::MODE1) & 0x10, 0x10);
+  CHECK_EQ(bus.reg(MockPca9685::PRE_SCALE), 60);
+}
+
+TEST_CASE("EnsureInitialized returns after the oscillator has started") {
+  MockPca9685 bus;
+  Driver pwm(&bus, 0x40);
+  REQUIRE(pwm.EnsureInitialized());
+  CHECK(bus.usSinceWake() >= 500.0);
+}
+
+TEST_CASE("A port without DelayUs still gets the 500 us, timed by bus traffic at 1 MHz") {
+  MockPca9685NoDelay bus;                         // model clock: Fm+, the fastest bus the chip allows
+  pca9685::PCA9685<MockPca9685NoDelay> pwm(&bus, 0x40);
+  REQUIRE(pwm.EnsureInitialized());
+  CHECK(bus.usSinceWake() >= 500.0);
+  REQUIRE(pwm.SetPwm(0, 0, 2048));
+  REQUIRE(pwm.Sleep());
+  REQUIRE(pwm.Wake());
+  CHECK_EQ(bus.restarts, 1);
+  CHECK_EQ(bus.early_restarts, 0);
+  CHECK(bus.usSinceWake() >= 500.0);
+}
+
+// ---- ON and OFF never equal: 0 % and 100 % use the full-OFF / full-ON bits (datasheet 7.3.3, 7.3.4) ----
+
+TEST_CASE("SetDuty 0.0 sets full OFF instead of ON = OFF = 0") {
+  MockPca9685 bus;
+  Driver pwm(&bus, 0x40);
+  REQUIRE(pwm.SetPwm(7, 0, 2000));
+  REQUIRE(pwm.SetDuty(7, 0.0f));
+  CHECK_EQ(offTicks(bus, 7) & 0x1000, 0x1000);    // LED7_OFF_H[4]: constantly low
+  CHECK_EQ(onTicks(bus, 7) & 0x1000, 0);
+  CHECK(onTicks(bus, 7) != offTicks(bus, 7));
+  REQUIRE(pwm.SetDuty(7, 1.0f / 9000.0f));        // rounds to OFF = 0: also full OFF
+  CHECK_EQ(offTicks(bus, 7), 0x1000);
+}
+
+TEST_CASE("SetDuty 1.0 sets full ON, not 4095 of 4096 ticks") {
+  MockPca9685 bus;
+  Driver pwm(&bus, 0x40);
+  REQUIRE(pwm.SetDuty(8, 1.0f));
+  CHECK_EQ(onTicks(bus, 8), 0x1000);              // LED8_ON_H[4]: constantly high
+  CHECK_EQ(offTicks(bus, 8), 0x0000);             // full OFF clear (it would override full ON)
+}
+
+TEST_CASE("SetPwm and SetAllPwm with ON = OFF write full OFF") {
+  MockPca9685 bus;
+  Driver pwm(&bus, 0x40);
+  REQUIRE(pwm.SetPwm(9, 300, 300));
+  CHECK_EQ(onTicks(bus, 9), 0x0000);
+  CHECK_EQ(offTicks(bus, 9), 0x1000);
+  REQUIRE(pwm.SetAllPwm(0, 0));
+  for (int ch = 0; ch < 16; ++ch) {
+    CHECK_EQ(onTicks(bus, ch), 0x0000);
+    CHECK_EQ(offTicks(bus, ch), 0x1000);
+  }
+}
+
+// ---- OE pin: active low, driven through the port's GpioSet() (datasheet 7.4) ----
+
+TEST_CASE("SetOutputEnable drives OE through the port: enable = ACTIVE = low") {
+  MockPca9685 bus;
+  Driver pwm(&bus, 0x40);
+  REQUIRE(pwm.SetOutputEnable(true));
+  REQUIRE(bus.gpio_calls.size() == 1U);
+  CHECK(bus.gpio_calls[0].first == pca9685::CtrlPin::OE);
+  CHECK(bus.gpio_calls[0].second == pca9685::GpioSignal::ACTIVE);
+  CHECK(bus.oe_low);
+  REQUIRE(pwm.SetOutputEnable(false));
+  CHECK(bus.gpio_calls.back().second == pca9685::GpioSignal::INACTIVE);
+  CHECK(!bus.oe_low);
+  CHECK(bus.log.empty());                         // no I2C traffic, no initialisation needed
+}
+
+TEST_CASE("GpioSetActive and GpioSetInactive reach the port's GpioSet") {
+  MockPca9685 bus;
+  bus.GpioSetActive(pca9685::CtrlPin::OE);
+  CHECK(bus.oe_low);
+  bus.GpioSetInactive(pca9685::CtrlPin::OE);
+  CHECK(!bus.oe_low);
+  CHECK_EQ(bus.gpio_calls.size(), 2U);
+}
+
+TEST_CASE("SetOutputEnable without a bus fails") {
+  Driver pwm(nullptr, 0x40);
+  CHECK(!pwm.SetOutputEnable(true));
+  CHECK(pwm.HasError(Driver::Error::InvalidParam));
 }

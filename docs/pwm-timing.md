@@ -13,7 +13,8 @@ Every channel compares one shared counter, running from 0 to 4095 and wrapping, 
 - **OFF tick** (`LEDn_OFF`): the counter value at which it goes low.
 
 Duty cycle is `(OFF − ON) / 4096` when OFF is after ON, and `(4096 − ON + OFF) / 4096` when it wraps. ON and OFF
-must never be equal (section 7.3.4, p. 25).
+must never be equal (section 7.3.4, p. 25): when you pass equal ticks to `SetPwm()` or `SetAllPwm()`, the driver
+writes the full-OFF bit instead.
 
 | Call | ON tick | OFF tick | Output |
 | --- | --- | --- | --- |
@@ -21,15 +22,18 @@ must never be equal (section 7.3.4, p. 25).
 | `SetPwm(ch, 1024, 3072)` | 1024 | 3072 | 50 %, shifted by a quarter period |
 | `SetPwm(ch, 3072, 1024)` | 3072 | 1024 | 50 %, high across the wrap |
 | `SetDuty(ch, d)` | 0 | `lround(d × 4095)` | Starts every period at tick 0 |
+| `SetDuty(ch, 0.0f)` | 0 | bit 12 set | Constantly low (full off) |
+| `SetDuty(ch, 1.0f)` | bit 12 set | 0 | Constantly high (full on) |
+| `SetPwm(ch, t, t)` | 0 | bit 12 set | Equal ticks: full off |
 | `SetChannelFullOn(ch)` | bit 12 set | 0 | Constantly high |
 | `SetChannelFullOff(ch)` | 0 | bit 12 set | Constantly low; overrides full on |
 
 Staggering the ON ticks of channels spreads their switching edges over the period and lowers the current surge on
 the load supply; `SetDuty()` always starts at tick 0, so use `SetPwm()` for that.
 
-`SetDuty(ch, 1.0f)` gives OFF = 4095: high for 4095 of 4096 ticks, not constantly high. `SetDuty(ch, 0.0f)` writes
-ON = OFF = 0, which the datasheet says not to program. Use `SetChannelFullOn()` and `SetChannelFullOff()` for the
-two ends.
+`SetDuty()` uses the full-on and full-off bits (`LEDn_ON_H` and `LEDn_OFF_H` bit 4, Table 7, p. 24) for the two
+ends: 1.0 is constantly high, and any duty that rounds to OFF = 0 (below 1/8190) is constantly low. It never writes
+ON = OFF.
 
 ## The period
 

@@ -21,24 +21,21 @@ Start with the error flags of the failing call (`GetErrorFlags()`, [API guide](a
 
 | Cause | Check | Fix |
 | --- | --- | --- |
-| OE high or floating | OE pin level | Tie OE low or drive it low; it has no internal pull-up |
+| OE high or floating | OE pin level | Tie OE low, or call `SetOutputEnable(true)` with a port that implements `GpioSet()`; OE has no internal pull-up |
 | Chip asleep | MODE1 bit 4 | `Wake()`; `Sleep()` and power-up both leave SLEEP set until the driver starts |
-| Channel full off | `LEDn_OFF_H` bit 4 | `SetPwm()`, `SetDuty()` or `SetChannelFullOn()` clear it |
+| Channel full off | `LEDn_OFF_H` bit 4 | `SetPwm()` with ON ≠ OFF, `SetDuty()` above 0 or `SetChannelFullOn()` clear it; `SetDuty(ch, 0.0f)` and equal ticks set it |
 | Load wired to the wrong side | Totem pole versus open drain, INVRT | [Hardware](hardware.md#output-stage) |
 
 ## Channel outputs are wrong or do not change
 
-The driver writes each channel as one four-byte transaction starting at `LEDn_ON_L`, but it never sets MODE1.AI
-(register auto-increment), and `Reset()` clears it. According to the datasheet (Table 5, p. 14) the register
-pointer then stays on `LEDn_ON_L`, so the four bytes do not reach `LEDn_ON_H`, `LEDn_OFF_L` and `LEDn_OFF_H`.
-Until the driver sets AI itself, set it once through your port after initialisation:
+The driver writes each channel as one four-byte transaction starting at `LEDn_ON_L` and relies on MODE1.AI
+(register auto-increment) to move the register pointer through `LEDn_ON_H`, `LEDn_OFF_L` and `LEDn_OFF_H`
+(Table 5, p. 14). `Reset()` sets AI and every later MODE1 write of the driver keeps it.
 
-```cpp
---8<-- "tests/docs/api_tasks.cpp:auto-increment"
-```
-
-The driver's later MODE1 writes (`SetPwmFreq()`, `Sleep()`, `Wake()`) keep the bit; a later `Reset()` clears it
-again.
+| Cause | Check | Fix |
+| --- | --- | --- |
+| Port splits or truncates the transfer | A logic analyser on the bus: one START, five data bytes, one STOP | One call, one transaction ([Porting](porting.md#i2c-port)) |
+| Your own MODE1 write cleared AI | MODE1 bit 5 | Keep bit 5 set in raw MODE1 writes, or call `Reset()` again |
 
 ## The frequency is off
 

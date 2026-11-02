@@ -78,6 +78,9 @@ public:
   static constexpr uint8_t MAX_CHANNELS_ = 16;    ///< Number of PWM channels (0-15)
   static constexpr uint16_t MAX_PWM_ = 4095;      ///< Maximum tick value (12-bit)
   static constexpr uint32_t OSC_FREQ_ = 25000000; ///< Internal oscillator frequency (Hz)
+  /// Oscillator start-up time after MODE1.SLEEP is cleared, in microseconds (datasheet Table 5,
+  /// note 2; section 7.3.1.1). The driver waits this long through the port's DelayUs().
+  static constexpr uint32_t OSC_STARTUP_US_ = 500;
 
   /**
    * @brief Construct a new PCA9685 driver instance.
@@ -113,7 +116,11 @@ public:
   /**
    * @brief Reset the device to its power-on default state.
    *
-   * Ensures the I2C bus is initialized, then writes MODE1 register to 0x00.
+   * Ensures the I2C bus is initialized, then writes MODE1 = 0x20: oscillator on (SLEEP = 0) and
+   * register auto-increment on (AI = 1), which the driver's four-byte channel writes need
+   * (datasheet 7.3.1, Table 5). Sub-address and All Call responses are turned off. The channel
+   * registers, MODE2 and PRE_SCALE are not touched. Returns after the 500 us oscillator start-up
+   * time (OSC_STARTUP_US_, datasheet Table 5 note 2).
    *
    * @return true on success; false on I2C failure.
    */
@@ -121,6 +128,11 @@ public:
 
   /**
    * @brief Set the PWM frequency for all channels.
+   *
+   * PRE_SCALE is writable only while MODE1.SLEEP = 1, so the driver puts the chip to sleep, writes
+   * PRE_SCALE and, if the chip was running, clears SLEEP, waits OSC_STARTUP_US_ and writes RESTART
+   * so that the running channels resume (datasheet 7.3.1.1, 7.3.5). A sleeping chip stays asleep.
+   *
    * @param freq_hz Desired frequency in Hz (24-1526 typical).
    * @return true on success; false on I2C failure or invalid parameter.
    */
@@ -128,6 +140,10 @@ public:
 
   /**
    * @brief Set the PWM on/off time for a channel.
+   *
+   * ON and OFF must never hold the same count (datasheet 7.3.4, p. 25): when @p on_time equals
+   * @p off_time (zero duty) the driver writes the full-OFF bit, LEDn_OFF_H[4], instead.
+   *
    * @param channel Channel number (0-15).
    * @param on_time Tick count when signal turns ON (0-4095).
    * @param off_time Tick count when signal turns OFF (0-4095).
@@ -137,14 +153,23 @@ public:
 
   /**
    * @brief Set the duty cycle for a channel (0.0-1.0).
+   *
+   * Writes ON = 0, OFF = lround(duty * 4095). The two ends use the full-OFF and full-ON bits
+   * (datasheet 7.3.3, Table 7, p. 24): a duty that rounds to OFF = 0 sets LEDn_OFF_H[4] (constantly
+   * low), and 1.0 sets LEDn_ON_H[4] (constantly high), so ON and OFF never hold the same count
+   * (7.3.4).
+   *
    * @param channel Channel number (0-15).
-   * @param duty Duty cycle (0.0 = always off, 1.0 = always on).
+   * @param duty Duty cycle, clamped to 0.0 (always off) .. 1.0 (always on).
    * @return true on success; false on I2C failure or invalid parameter.
    */
   bool SetDuty(uint8_t channel, float duty) noexcept;
 
   /**
    * @brief Set all channels to the same PWM value.
+   *
+   * Equal @p on_time and @p off_time write ALL_LED_OFF_H[4] (full OFF), as in SetPwm().
+   *
    * @param on_time Tick count when signal turns ON (0-4095).
    * @param off_time Tick count when signal turns OFF (0-4095).
    * @return true on success; false on I2C failure.
@@ -256,8 +281,11 @@ public:
   /**
    * @brief Wake the PCA9685 from sleep mode.
    *
-   * Clears the SLEEP bit in MODE1 and sets the RESTART bit if it was set
-   * prior to sleep. PWM outputs resume from their previous values.
+   * Follows the restart procedure of datasheet section 7.3.1.1: reads MODE1, clears SLEEP, waits
+   * OSC_STARTUP_US_ (500 us) for the oscillator, then writes 1 to RESTART if it read 1, so the
+   * channels that were running resume with their previous values. The wait goes through the
+   * port's DelayUs() (see I2cInterface); a port without one is timed with bus reads instead.
+   * Does nothing when the chip is already awake and RESTART is clear.
    *
    * @return true on success; false on I2C failure.
    */
@@ -286,6 +314,23 @@ public:
    * @return true on success; false on I2C failure.
    */
   bool SetOutputDriverMode(bool totem_pole) noexcept;
+
+  /**
+   * @brief Enable or blank all 16 outputs with the OE pin.
+   *
+   * OE is active LOW (datasheet 7.4, Table 11): with OE low the outputs follow their LEDn
+   * registers, with OE high they take the MODE2.OUTNE state (low by default). This calls the
+   * port's GpioSet(CtrlPin::OE, ACTIVE) to enable and GpioSet(CtrlPin::OE, INACTIVE) to blank;
+   * the port maps ACTIVE to a low level. No I2C traffic, and the chip need not be initialized.
+   * A port that does not declare GpioSet() inherits the no-op default, for OE tied low.
+   *
+   * The driver never drives OE on its own, so a port can hold the outputs blanked from power-up
+   * until the channels are programmed.
+   *
+   * @param enable true to enable the outputs (OE low), false to blank them (OE high).
+   * @return true if the request was passed to the port; false if no bus was given.
+   */
+  bool SetOutputEnable(bool enable) noexcept;
 
   // ---- Channel On/Off ----
 
@@ -355,6 +400,12 @@ public:
   }
 
 private:
+  static constexpr uint8_t MODE1_RESTART_ = 0x80; ///< MODE1 bit 7: RESTART (Table 5)
+  static constexpr uint8_t MODE1_AI_ = 0x20;      ///< MODE1 bit 5: register auto-increment
+  static constexpr uint8_t MODE1_SLEEP_ = 0x10;   ///< MODE1 bit 4: SLEEP (oscillator off)
+  /// MODE1 reads that cover OSC_STARTUP_US_ at 1 MHz SCL when the port has no DelayUs().
+  static constexpr uint32_t OSC_STARTUP_FALLBACK_READS_ = 13;
+
   I2cType* i2c_;
   uint8_t addr_;
   Error last_error_{Error::None};
@@ -384,6 +435,36 @@ private:
   /** @brief Compute prescale value for given frequency. @param freq_hz Frequency in Hz. @return
    * Prescale value (0–255). */
   [[nodiscard]] uint8_t calcPrescale(float freq_hz) const noexcept;
+
+  /**
+   * @brief Write MODE1 with AI forced to 1 and RESTART forced to 0.
+   * @param value New MODE1 value (the AI and RESTART bits are overridden).
+   * @return true on success.
+   */
+  bool writeMode1(uint8_t value) noexcept;
+
+  /**
+   * @brief Clear SLEEP, wait for the oscillator, then optionally write RESTART (datasheet 7.3.1.1).
+   * @param mode1 MODE1 value to keep (SLEEP and RESTART are overridden).
+   * @param restart true to write 1 to RESTART after the start-up time.
+   * @return true on success.
+   */
+  bool restartAfterSleep(uint8_t mode1, bool restart) noexcept;
+
+  /**
+   * @brief Wait OSC_STARTUP_US_ through I2cType::DelayUs(), or with MODE1 reads if the port has
+   * none.
+   */
+  void waitOscillatorStartup() noexcept;
+
+  /**
+   * @brief Build the four LEDn / ALL_LED bytes for ON and OFF ticks; equal ticks give full OFF.
+   * @param on_time ON tick (0-4095).
+   * @param off_time OFF tick (0-4095).
+   * @return LEDn_ON_L, LEDn_ON_H, LEDn_OFF_L, LEDn_OFF_H.
+   */
+  [[nodiscard]] static ::std::array<uint8_t, 4> pwmFrame(uint16_t on_time,
+                                                         uint16_t off_time) noexcept;
 
   /**
    * @brief Read-modify-write a single register.

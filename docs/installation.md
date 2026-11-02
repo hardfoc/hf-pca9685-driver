@@ -35,8 +35,24 @@ and the generated version header) and requires C++20 (`cxx_std_20`), so your tar
 | `HF_PCA9685_ENABLE_WARNINGS` | `OFF` | `-Wall -Wextra -Wpedantic` on every target that links the driver |
 | `HF_PCA9685_BUILD_TESTS` | `OFF` | Builds the host unit tests in `tests/` ([Testing and CI](testing.md)) |
 
-Use the driver from its source tree as above. The `install()` rules do not yet produce a usable package: they
-leave out `src/pca9685.ipp`, which the header includes, and export the target as `hf::hf_pca9685`.
+## Installed package
+
+To use the driver without adding its source tree to your build, install it and find the package:
+
+```bash
+cmake -S external/hf-pca9685-driver -B build-pca9685
+cmake --install build-pca9685 --prefix /opt/hardfoc
+```
+
+```cmake
+find_package(hf_pca9685 1.0 REQUIRED)            # with CMAKE_PREFIX_PATH=/opt/hardfoc
+target_link_libraries(my_app PRIVATE hf::pca9685)
+```
+
+The headers and the generated `pca9685_version.h` go to `include/hf_pca9685/inc/` and the template
+implementation the header includes to `include/hf_pca9685/src/pca9685.ipp`; the target's include directory is
+`include/hf_pca9685/inc`, so the code is the same as with `add_subdirectory()`: `#include "pca9685.hpp"`. The host
+CI installs the package and builds a consumer against it on every pull request ([Testing](testing.md)).
 
 ## ESP-IDF
 
@@ -51,7 +67,7 @@ component then declares `REQUIRES hf_pca9685`.
 | Layer | File | Role |
 | --- | --- | --- |
 | Settings | [`cmake/hf_pca9685_build_settings.cmake`](../cmake/hf_pca9685_build_settings.cmake) | Target name, include directories, version: the single source of truth |
-| Library | [`CMakeLists.txt`](../CMakeLists.txt) | INTERFACE target, install and package export |
+| Library | [`CMakeLists.txt`](../CMakeLists.txt) | INTERFACE target, install rules and the `hf_pca9685` package export |
 | ESP-IDF | [`examples/esp32/components/hf_pca9685/CMakeLists.txt`](../examples/esp32/components/hf_pca9685/CMakeLists.txt) | IDF component wrapper over the same settings |
 
 The version is set once in the settings file and written into `pca9685_version.h` in the build tree at

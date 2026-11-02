@@ -15,6 +15,7 @@
 
 // Platform hooks: your SDK's calls. Declared only, so the docs build checks the port compiles.
 bool platform_i2c_init() noexcept;
+void platform_delay_us(uint32_t us) noexcept;                                            // busy-wait
 bool platform_i2c_write(uint8_t addr7, const uint8_t* bytes, std::size_t len) noexcept;  // START .. STOP
 bool platform_i2c_write_read(uint8_t addr7, const uint8_t* tx, std::size_t tx_len, uint8_t* rx,
                              std::size_t rx_len) noexcept;                                // repeated START
@@ -47,6 +48,9 @@ public:
   bool Read(uint8_t addr, uint8_t reg, uint8_t* data, size_t len) noexcept {
     return platform_i2c_write_read(addr, &reg, 1, data, len);
   }
+
+  // Optional: wait at least `us` microseconds. The driver uses it for the 500 us oscillator start-up.
+  void DelayUs(uint32_t us) noexcept { platform_delay_us(us); }
 
 private:
   bool ready_ = false;
