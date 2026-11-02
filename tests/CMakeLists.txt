@@ -32,3 +32,13 @@ target_link_libraries(hf_pca9685_doc_snippets PRIVATE ${HF_PCA9685_TARGET_NAME})
 target_include_directories(hf_pca9685_doc_snippets PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/docs)
 target_compile_features(hf_pca9685_doc_snippets PRIVATE cxx_std_20)
 target_compile_options(hf_pca9685_doc_snippets PRIVATE -Wall -Wextra)
+
+# The install() rules: install into a scratch prefix and build a find_package() consumer against it.
+add_test(NAME hf_pca9685_install
+  COMMAND ${CMAKE_COMMAND}
+    -DBUILD_DIR=${PROJECT_BINARY_DIR}
+    -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
+    -DWORK_DIR=${CMAKE_CURRENT_BINARY_DIR}/install-check
+    -DCXX_COMPILER=${CMAKE_CXX_COMPILER}
+    "-DGENERATOR=${CMAKE_GENERATOR}"
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/check_install.cmake)

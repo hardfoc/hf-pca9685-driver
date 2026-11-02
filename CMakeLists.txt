@@ -11,6 +11,13 @@ project(hf_pca9685_driver LANGUAGES CXX)
 # Load shared build settings (target name, includes, sources, dependencies)
 #===============================================================================
 include(${CMAKE_CURRENT_LIST_DIR}/cmake/hf_pca9685_build_settings.cmake)
+include(GNUInstallDirs)
+
+# Installed layout keeps the source tree's inc/ + src/ pair, because pca9685.hpp includes
+# "../src/pca9685.ipp" relative to itself:
+#   <prefix>/include/hf_pca9685/inc/*.hpp, pca9685_version.h
+#   <prefix>/include/hf_pca9685/src/pca9685.ipp
+set(HF_PCA9685_INSTALL_INCLUDEDIR "${CMAKE_INSTALL_INCLUDEDIR}/hf_pca9685/inc")
 
 #===============================================================================
 # Target type selection
@@ -24,7 +31,7 @@ if(HF_PCA9685_SOURCE_FILES)
         PUBLIC
             $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/inc>
             $<BUILD_INTERFACE:${HF_PCA9685_VERSION_HEADER_DIR}>
-            $<INSTALL_INTERFACE:include>
+            $<INSTALL_INTERFACE:${HF_PCA9685_INSTALL_INCLUDEDIR}>
     )
     target_compile_features(${HF_PCA9685_TARGET_NAME} PUBLIC cxx_std_20)
 else()
@@ -33,7 +40,7 @@ else()
         INTERFACE
             $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/inc>
             $<BUILD_INTERFACE:${HF_PCA9685_VERSION_HEADER_DIR}>
-            $<INSTALL_INTERFACE:include>
+            $<INSTALL_INTERFACE:${HF_PCA9685_INSTALL_INCLUDEDIR}>
     )
     target_compile_features(${HF_PCA9685_TARGET_NAME} INTERFACE cxx_std_20)
 endif()
@@ -46,6 +53,8 @@ endif()
 #
 # This alias remains stable even if the underlying concrete target changes.
 add_library(hf::pca9685 ALIAS ${HF_PCA9685_TARGET_NAME})
+# The installed package exports the same name: hf::pca9685 (not hf::hf_pca9685).
+set_target_properties(${HF_PCA9685_TARGET_NAME} PROPERTIES EXPORT_NAME pca9685)
 
 #===============================================================================
 # Versioning
@@ -80,20 +89,22 @@ endif()
 #===============================================================================
 # Install and export support (for find_package usage)
 #===============================================================================
-include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
 
 install(TARGETS ${HF_PCA9685_TARGET_NAME} EXPORT hf_pca9685Targets
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-    INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+    INCLUDES DESTINATION ${HF_PCA9685_INSTALL_INCLUDEDIR}
 )
 
-# Install hand-written headers + generated version header
-install(DIRECTORY inc/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-    FILES_MATCHING PATTERN "*.hpp" PATTERN "*.h" PATTERN "*.h.in" EXCLUDE)
-install(FILES "${HF_PCA9685_VERSION_HEADER}" DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+# Hand-written headers, the generated version header and the template implementation the
+# header includes (src/pca9685.ipp), in the layout described at the top of this file.
+install(DIRECTORY inc/ DESTINATION ${HF_PCA9685_INSTALL_INCLUDEDIR}
+    FILES_MATCHING PATTERN "*.hpp" PATTERN "*.h")
+install(FILES "${HF_PCA9685_VERSION_HEADER}" DESTINATION ${HF_PCA9685_INSTALL_INCLUDEDIR})
+install(DIRECTORY src/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/hf_pca9685/src
+    FILES_MATCHING PATTERN "*.ipp")
 
 install(EXPORT hf_pca9685Targets
     FILE hf_pca9685Targets.cmake

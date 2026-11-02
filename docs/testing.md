@@ -6,8 +6,8 @@ static analysis, on every pull request.
 ## Host unit tests
 
 The tests build the real driver against a model of the PCA9685's register interface: power-up register values,
-PRE_SCALE ignoring writes while the chip is awake, the register pointer advancing only with MODE1.AI set, and
-injected I2C failures. Every transaction the driver sends is logged, so tests check the exact bytes and
+PRE_SCALE ignoring writes while the chip is awake, the register pointer advancing only with MODE1.AI set, the
+RESTART bit and the 500 µs oscillator start-up on a model bus clock, and injected I2C failures. Every transaction the driver sends is logged, so tests check the exact bytes and
 registers.
 
 ```bash
@@ -21,6 +21,7 @@ ctest --test-dir build-host --output-on-failure
 | [`tests/test_driver.cpp`](../tests/test_driver.cpp) | Initialisation, retries, frequency and prescaler, channel frames, range checks, sleep, MODE2 |
 | [`tests/mock_pca9685.hpp`](../tests/mock_pca9685.hpp) | The register model and transaction log |
 | [`tests/test_harness.hpp`](../tests/test_harness.hpp) | A dependency-free test registry and `CHECK` macros |
+| [`tests/check_install.cmake`](../tests/check_install.cmake) | CTest `hf_pca9685_install`: installs into a scratch prefix and builds [`tests/install_consumer/`](../tests/install_consumer/CMakeLists.txt) with `find_package(hf_pca9685)` |
 
 ## Documentation snippets
 

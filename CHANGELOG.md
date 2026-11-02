@@ -33,6 +33,10 @@ code that used the affected API; together they call for a major version bump at 
   the two ends is no longer needed.
 - `I2cInterface::GpioSetActive()` and `GpioSetInactive()` called the base class's do-nothing `GpioSet()`, never
   the port's, so the OE hooks did nothing. They now dispatch to the port's `GpioSet()` (CRTP).
+- `cmake --install` now produces a usable package: it installs `src/pca9685.ipp` (which `pca9685.hpp` includes)
+  under `include/hf_pca9685/src/` next to the headers in `include/hf_pca9685/inc/`, and the exported target is
+  `hf::pca9685`, the same name as the in-tree alias (it was exported as `hf::hf_pca9685`, from a package that
+  could not compile). A CTest (`hf_pca9685_install`) builds a `find_package()` consumer against the install.
 
 ### Added
 
